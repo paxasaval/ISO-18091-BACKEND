@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "Backend plataforma ISO 18091",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy":"git push",
+    "start":"node index.js",
+    "dev":"nodemon index.js",
+    "lint":"eslint .",
+    "lint:fix":"eslint . --fix"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "ISO-18091"
+  ],
+  "author": "paxasaval, pabloPicon",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "mongoose": "^7.0.3",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0",
+    "nodemon": "^2.0.22"
+  }
+}
