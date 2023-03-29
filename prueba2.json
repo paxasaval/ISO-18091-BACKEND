@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Instancia responsable",
+    "red": "No cuenta con una instancia responsable de ... con atribuciones para operar fundamentadas en el reglamento interior, con presupuesto asignado y personal capacitado.",
+    "yellow": "Cuenta con una instancia responsable de ... con atribuciones para operar fundamentadas en el reglamento interior, pero sin presupuesto asignado y/o personal capacitado.",
+    "green": "Cuenta con una instancia responsable de ... con atribuciones para operar fundamentadas en el reglamento interior, con presupuesto asignado y personal capacitado.",
+    "qualification": 0
+  },
+
+  {
+    "name": "Diagnostico",
+    "red": "No cuenta con un diagnóstico de...",
+    "yellow": "Cuenta con un diagnóstico de..., que contiene el contexto del municipio, pero no considera todos los elementos señalados en las evidencias. Menos del 50% de los programas y/o acciones en esta materia utilizan este diagnóstico.",
+    "green": "Cuenta con un diagnóstico actualizado en materia...Considera los elementos señalados en las evidencias.Más del 50% de los programas y/o acciones en esta materia utilizan este diagnóstico.",
+    "qualification": 0
+  },
+  {
+    "name": "Normativa y Reglamentación",
+    "red": "El gobierno Local no cuenta con normatividad en materia de...",
+    "yellow": "El gobierno local cuenta con normatividad en materia de..., pero no está actualizada y/o no existe evidencia de su cumplimiento.",
+    "green": "El gobierno local cuenta con normatividad vigente y actualizada en materia de... Existe evidencia de su cumplimiento.",
+    "qualification": 0
+  },
+
+  {
+    "name": "Mecanismos",
+    "red": "El gobierno local no cuenta con mecanismos para..., ni existe evidencia de su implementación y/o de sus resultados.",
+    "yellow": "El gobierno local cuenta con mecanismos para ..., pero no existe evidencia de su implementación y/o de sus resultados.",
+    "green": "El gobierno local cuenta con mecanismos para....Existe evidencia de su implementación y de sus resultados.",
+    "qualification": 0
+  },
+
+  {
+    "name": "Proyecto",
+    "red": "Undefined",
+    "yellow": "Undefined",
+    "green": "Undefined",
+    "qualification": 0
+  },
+  {
+    "name": "Proyecto Institucional",
+    "red": "Undefined",
+    "yellow": "Undefined",
+    "green": "Undefined",
+    "qualification": 0
+  },
+  {
+    "name": "Servicios",
+    "red": "Undefined",
+    "yellow": "Undefined",
+    "green": "Undefined",
+    "qualification": 0
+  }
+]
