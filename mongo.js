@@ -4,6 +4,7 @@ const logger = require("./utils/logger");
 const fs = require("fs");
 const ODS = require("./models/ods");
 const Type = require("./models/tipo");
+const Indicadores = require("./models/indicador");
 mongoose
   .connect(config.MONGODB_URI)
   .then(() => {
@@ -20,7 +21,7 @@ const saveData = () => {
   //console.log(jsonData)
   let index = 0;
   jsonData.map((data) => {
-    const newData = new Type({ ...data });
+    const newData = new Indicadores({ ...data });
     //    console.log(newData)
     newData.save().then(() => {
       index += 1;
