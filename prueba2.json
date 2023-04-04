@@ -1,560 +1,256 @@
 [
 {
-  "name": "Gestión integral de la calidad",
-  "description": "Gobierno enfocado en el desarrollo sostenible y la resiliencia con un sistema integral de gestión de la calida",
-  "number": 1,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "Las actividades del gobierno local no están planificadas ni presupuestadas. No hay un enfoque en el desarrollo sostenible y la resiliencia. Las actividades no están controladas ni evaluadas a través de un sistema integral de gestión de la calidad.",
-  "yellow": "Las actividades del gobierno local están planificadas y enfocadas en el desarrollo sostenible, controladas y evaluadas a través de sistemas de gestión en algunos procesos o departamentos específicos.",
-  "green": "El gobierno local tiene un sistema integral de gestión de la calidad con enfoque en el desarrollo sostenible y la resiliencia.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a026",
-      "6423a97572531979c162a02a",
-      "6423a97572531979c162a02b"
-  ]
-},	
-
+  "name": "Inclusión del reglamento interior",
+  "group": 0,
+  "groupName":"Inclusión del reglamento interior",
+  "required":true,
+  "tier":1,
+  "typeID":"641f09bad9b5d8272b1ada54",
+  "unique":false
+},
 {
-  "name": "Asociación y colaboración comprometida",
-  "description": "Asociación y compromiso del gobierno local a colaborar con las partes interesadas",
-  "number": 2,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local no tiene cooperación a nivel nacional, regional e internacional. Existen relaciones, políticas y actividades que se desarrollan con algunos niveles de gobierno, gobiernos locales o entidades públicas, sociales y privadas.",
-  "yellow": "El gobierno local tiene algunas actividades de cooperación a nivel nacional, regional e internacional. Existen relaciones, políticas y actividades que se desarrollan con otros niveles de gobierno, gobiernos locales o entidades públicas, sociales y privadas.",
-  "green": "El gobierno local tiene estrategias de colaboración comprometida y cooperación a nivel nacional, regional e internacional. Estas estrategias son coherentes con la planificación del gobierno local. Las relaciones, políticas y actividades son desarrolladas con otros gobiernos locales o entidades públicas, sociales y privadas.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a025",
-      "6423a97572531979c162a02b"
-  ]
+  "name": "Organigrama",
+  "group": 0,
+  "groupName":"Organigrama",
+  "required":true,
+  "tier":1,
+  "typeID":"641f09bad9b5d8272b1ada54",
+  "unique":false
+},
+{
+  "name": "Evidencia de la capacitación",
+  "group": 0,
+  "groupName":"Evidencia de la capacitación",
+  "required":true,
+  "tier":1,
+  "typeID":"641f09bad9b5d8272b1ada54",
+  "unique":false
 },
 
 {
-  "name": "Profesionalización de los servidores públicos",
-  "description": "Competencia, compromiso y continuidad de los servidores públicos",
-  "number": 3,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local tiene algunas actividades de formación para sus servidores públicos, pero no tiene perfiles de puesto o un diagnóstico de necesidades de formación.",
-  "yellow": "El gobierno local tiene algunos procedimientos para la profesionalización y formación de sus servidores públicos. Hay perfiles de puesto y un diagnóstico de necesidades de formación, pero no son adecuados.",
-  "green": "El gobierno local tiene personal competente y comprometido. Tiene un diagnóstico de necesidades de formación y políticas de transparencia para promover la continuidad, profesionalización y formación de los servidores públicos. Hay regulaciones que especifican perfiles de puesto adecuados, condiciones de trabajo decente y evidencia de su cumplimiento.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a02a"
-  ]
+  "name": "Diagnóstico",
+  "group": 0,
+  "groupName":"Diagnostico",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca034",
+  "unique":false
+},
+{
+  "name": "Listado de programa(s) y/o acción(es) generado(s) a partir del diagnóstico",
+  "group": 0, 
+  "groupName":"Listado de programa(s) y/o acción(es) generado(s) a partir del diagnóstico",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca034",
+  "unique":false
 },
 
 {
-  "name": " Finanzas públicas y responsabilidad fiscal",
-  "description": "Responsabilidad fiscal con sana gestión financiera",
-  "number": 4,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local depende de transferencias de otros niveles de gobierno para financiar sus actividades. Hay un impuesto a la propiedad con un sistema de registro de tierras. Sin embargo, este último no es adecuado. El gobierno local no gestiona su deuda pública.",
-  "yellow": "El gobierno local tiene un sistema efectivo de recaudación de impuestos e ingresos propios. Existe un impuesto a la propiedad con un sistema de registro de tierras y un balance financiero que considera la gestión de su deuda pública.",
-  "green": "El gobierno local tiene una autonomía aceptable y no depende totalmente de la transferencia de otros niveles de gobierno para financiar sus actividades. Tiene un sistema efectivo de recaudación de impuestos e ingresos propios. Existe un impuesto a la propiedad con un sistema de registro de tierras actualizado y un balance financiero aceptable considerando la gestión de su deuda pública.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01f", "6423a97572531979c162a024","6423a97572531979c162a02b"
-  ]
+  "name": "Normas, reglamentos y/o ordenanzas",
+  "group": 0, 
+  "groupName":"Normas, reglamentos y/o ordenanzas",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca035",
+  "unique":false
 },
 {
-  "name": "TIC y gestión de datos",
-  "description": "Uso sistemático de las tecnologías de la información y la comunicación y gestión de datos para el e-gobierno",
-  "number": 5,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local utiliza las tecnologías de la información y comunicación para los procesos internos. Sin embargo, las TIC no se utilizan para la comunicación bidireccional con los ciudadanos o para proporcionar sus servicios.",
-  "yellow": "El gobierno local utiliza las tecnologías de la información y comunicación para los procesos internos, la comunicación bidireccional con los ciudadanos y para proporcionar sus servicios. Hay estrategias y políticas para las TIC y la gestión de datos.",
-  "green": "El gobierno local utiliza sistemáticamente las tecnologías de información y comunicación actualizadas para los procesos internos, la comunicación bidireccional con los ciudadanos y para proporcionar sus servicios. Hay estrategias y políticas planificadas e implementadas para las TIC y la gestión de datos",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a023","6423a97572531979c162a02b"
-  ]
+  "name": "Convenios,cartas, compromisos, contratos, sistemas",
+  "group": 0, 
+  "groupName":"Convenios,cartas, compromisos, contratos, sistemas",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca036",
+  "unique":false
 },
 {
-  "name": "Estado de derecho y derechos humanos",
-  "description": "El Estado de Derecho y los Derechos Humanos prevalecen en el territorio del gobierno local",
-  "number": 6,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local tiene instituciones con un sistema legal vigente pero no actualizado para promover el estado de  derecho. No considera los Derechos Humanos.",
-  "yellow": "El gobierno local tiene instituciones con un sistema legal vigente para garantizar el Estado de Derecho y los Derechos Humanos de manera accesible y oportuna en todo su territorio.",
-  "green": "El gobierno local tiene instituciones con un sistema legal vigente y actualizado para garantizar el Estado de Derecho y los Derechos Humanos de manera eficiente, accesible y oportuna en todo su territorio.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a024","6423a97572531979c162a02b"
-  ]
+  "name": "Reporte de resultados",
+  "group": 0, 
+  "groupName":"Reporte de resultados",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca036",
+  "unique":false
 },
 {
-  "name": "Transparencia y comunicación",
-  "description": "Transparencia, comunicación, rendición de cuentas y acceso a la información para el  gobierno abierto",
-  "number": 7,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local implementa ciertas acciones para garantizar la transparencia, pero no permite una efectiva rendición de cuentas. Los clientes/ciudadanos no tienen acceso a los documentos, procedimientos y detalles relacionados con la estructura organizacional, los programas presupuestarios y el modo en cómo se gasta el dinero.",
-  "yellow": "El gobierno local implementa ciertas acciones para garantizar la transparencia, imparcialidad, confiabilidad e integridad para permitir y promover la rendición de cuentas efectiva. Los clientes/ciudadanos tienen acceso limitado a documentos, procedimientos y detalles relacionados con la estructura organizacional, los programas presupuestarios y el modo en cómo se gasta el dinero.",
-  "green": "El gobierno local tiene un sistema de transparencia que garantiza la imparcialidad, confiabilidad e integridad para permitir y promover una rendición de cuentas efectiva. Los clientes/ciudadanos tienen acceso a documentos, procedimientos y detalles relacionados con la estructura organizacional, los programas presupuestarios y el modo en cómo se gasta el dinero",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a02a"
-  ]
+  "name": "Objetivos y Metas",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Participación ciudadana",
-  "description": "Cultura democrática y compromiso de la comunidad en políticas públicas y programas",
-  "number": 8,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local no tiene procedimientos para promover la participación ciudadana o la cultura democrática.",
-  "yellow": "El gobierno local tiene algunos procedimientos para promover la participación ciudadana y la cultura democrática. Incluyen la participación de los ciudadanos en algunos programas, políticas públicas y algunas actividades para promover la cultura democrática.",
-  "green": "El gobierno local tiene un sistema para promover la participación ciudadana y la cultura democrática. Tiene procedimientos para incluir la participación de los ciudadanos en el diseño, implementación, seguimiento, control y evaluación de sus programas y políticas públicas, así como para la promoción de una cultura democrática.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a02a","6423a97572531979c162a02b"  
-  ]
+  "name": "Justificación",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Protección civil y resiliencia",
-  "description": "Resiliencia, protección civil y servicios de emergencias",
-  "number": 9,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local ha definido algunos procedimientos de protección civil para auxiliar a la población en caso de una emergencia. Sin embargo, no tiene acciones de prevención.",
-  "yellow": "El gobierno local ha definido un plan de protección civil y procedimientos para prevenir y auxiliar a la población en caso de una emergencia. Cuenta con un mapa de riesgos, provee servicios de asistencia de emergencia y realiza periódicamente inspecciones y actividades preventivas. Sin embargo, no tiene una estrategia para recuperarse de los efectos de una amenaza.",
-  "green": "El gobierno local ha definido un plan de protección civil y procedimientos para prevenir y auxiliar a la población en caso de una emergencia. Cuenta con un mapa de riesgos, provee servicios de asistencia de emergencia y realiza periódicamente inspecciones y actividades preventivas. Tiene una estrategia para recuperarse de los efectos de una amenaza.",
-  "qualification": 0,
-  "ods": [
-      "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a025","6423a97572531979c162a027"
-  ]
+  "name": "Proyecto",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Seguridad pública",
-  "description": "Seguridad pública y protección ",
-  "number": 10,
-  "quadrant": 1,
-  "quadrantName": "Desarrollo Institucional para un Buen Gobierno",
-  "red": "El gobierno local tiene coordinación institucional con otros niveles de gobierno y tiene acciones contra la delincuencia y el crimen. Cuenta con procedimientos y formación. Sin embargo, no tiene acciones de prevención y su personal no cuenta con equipo suficiente o adecuado.",
-  "yellow": "El gobierno local tiene coordinación institucional con otros niveles de gobierno y una estrategia para prevenir la violencia, la delincuencia y el crimen. Cuenta con equipos, procedimientos y formación.",
-  "green": "El gobierno local tiene una coordinación institucional eficiente con los ciudadanos y otros niveles de gobierno y una estrategia integral para prevenir la violencia, la delincuencia y el crimen. Cuenta con equipos, procedimientos y formación y los ciudadanos perciben seguridad en el territorio del gobierno local.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01d","6423a97572531979c162a02a"
-  ]
-},
-
-{
-  "name": " Innovación y competitividad",
-  "description": "Alternativas económicas innovadoras",
-  "number": 1,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local lleva a cabo acciones aisladas para la innovación en actividades económicas. Sin embargo, no ha identificado su base económica.",
-  "yellow": "El gobierno local ha identificado su base económica y lleva a cabo acciones aisladas para la innovación en actividades económicas.",
-  "green": "El gobierno local ha identificado su base económica y promueve la innovación económica a través de programas enfocados en el desarrollo de alternativas económicas innovadoras.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a022"
-  ]
-},
-
-{
-  "name": "Trabajo decente y crecimiento económico",
-  "description": "Oportunidades de trabajo decente y crecimiento económico",
-  "number": 2,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local tiene actividades para promover empleos en los sectores público y privado. Sin embargo, no tiene proyectos de formación o actividades para la creación de nuevos negocios.",
-  "yellow": "El gobierno local tiene actividades para promover el trabajo decente en los sectores público y privado. Estas actividades incluyen la creación de nuevos negocios y proyectos de formación.",
-  "green": "El gobierno local tiene una estrategia para la creación y promoción del trabajo decente en el sector público y privado. La estrategia incluye políticas integrales para la creación de nuevas empresas, la oportunidad de proveer y obtener trabajo decente y proyectos de formación para el crecimiento económico",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01f","6423a97572531979c162a022"
-  ]
+  "name": "Responsables",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Seguridad alimentaria y hambre cero",
-  "description": "Seguridad alimentaria y hambre cero",
-  "number": 3,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local promueve el suministro y el acceso físico a los alimentos para sus clientes/ciudadanos. No cuenta con supervisión regular en materia de seguridad alimentaria.",
-  "yellow": "El gobierno local promueve el suministro y el acceso físico a alimentos inocuos a sus clientes/ciudadanos. Cuenta con supervisión regular y eficiente en materia de seguridad alimentaria.",
-  "green": "El gobierno local promueve el suministro suficiente, acceso físico, alimentos inocuos y nutritivos para sus clientes/ciudadanos. Cuenta con una supervisión confiable, sistemática y registros completos relacionados con la seguridad alimentaria.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01c"
-  ]
+  "name": "Cronograma",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": " Formación profesional",
-  "description": "Formación técnica y profesional, educación permanente y competencias para la vida",
-  "number": 4,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local no cuenta con un diagnóstico sobre el mercado laboral y su demanda de formación profesional y técnica para el trabajo decente en la localidad, ni su acceso. Tampoco promueve acciones coherentes con el contexto local. ",
-  "yellow": "El gobierno local cuenta con un diagnóstico preciso sobre el mercado laboral y su demanda de formación profesional y técnica para el trabajo decente en la localidad y su acceso. Tiene programas de promoción pero no son suficientes ni coherentes con el diagnóstico.",
-  "green": "El gobierno local cuenta con un diagnóstico preciso sobre el mercado laboral y su demanda de formación profesional y técnica para el trabajo decente en la localidad y su acceso, incluyendo programas de formación para la vida y el emprendimiento. Tiene programas de promoción suficientes y coherentes con el diagnóstico.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01e"
-  ]
+  "name": "Presupuesto",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Turismo",
-  "description": "Promoción del turismo",
-  "number": 5,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local tiene un plan con programas enfocados en el desarrollo turístico pero no es coherente con el contexto local.",
-  "yellow": "El gobierno local tiene un plan con programas enfocados en el desarrollo del turismo pero no tiene una perspectiva sostenible. Considera el patrimonio cultural y promueve los productos locales y el trabajo local. Sin embargo, no cuenta con un diagnóstico sobre el potencial turístico de su territorio.",
-  "green": "El gobierno local tiene un diagnóstico sobre el potencial turístico de su territorio. Tiene un plan con una perspectiva de turismo sostenible que considera el patrimonio cultural y promueve los productos locales y el trabajo local.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a022","6423a97572531979c162a026"
-  ]
+  "name": "Otros",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Movilidad",
-  "description": "Movilidad sostenible y segura, vías de comunicación e interconexiones",
-  "number": 6,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "En el territorio del gobierno local, no hay suficientes servicios de movilidad. El sistema de transporte y la infraestructura de movilidad no son suficientes.",
-  "yellow": "En el territorio del gobierno local, hay suficientes servicios de movilidad. El sistema de transporte y la infraestructura de movilidad son suficientes en términos de su capacidad, pero no de calidad, atractivo o su contribución al medio ambiente.",
-  "green": "El gobierno local garantiza la provisión de servicios de movilidad seguros, cómodos, integrales, confiables, eficientes, accesibles, asequibles y adecuados para diferentes edades y grupos de necesidades especiales. Mantiene un sistema de transporte confiable, mejora la conectividad, fomenta el tráfico no motorizado y facilita el transporte de mercancías. Existe una infraestructura de movilidad suficiente y aceptable en términos de su capacidad, calidad, atractivo y su contribución a la sostenibilidad ambiental y la resiliencia.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a025"
-  ]
+  "name": "Indicadores de Seguimiento y Cumplimiento",
+  "group": 2, 
+  "groupName":"Ejecución",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Sector primario",
-  "description": "Promoción de desarrollo económico primario sostenible (rural/urbano: bosque, ganadería, agrícola y otros)",
-  "number": 7,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local tiene algunas actividades para el sector económico primario pero no cuenta con un diagnósito sobre los productos, productores y el potencial local del sector.",
-  "yellow": "El gobierno local tiene un diagnóstico parcial de los productores, los productos y su potencial local. Tiene actividades aisladas pero no hay estrategias para desarrollar de manera sostenible el sector económico primario.",
-  "green": "El gobierno local cuenta con un diagnóstico sobre los productos, productores y el potencial local del sector primario. Tiene estrategias y programas para el desarrollo sostenible del sector.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a01c","6423a97572531979c162a026","6423a97572531979c162a028"
-  ]
+  "name": "Otros",
+  "group": 2, 
+  "groupName":"Ejecución",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Industria, comercio y consumo",
-  "description": "Promoción del desarrollo sostenible de los sectores económicos secundarios, terciarios y del consumo (industria, comercio, servicios y otros)",
-  "number": 8,
-  "quadrant": 2,
-  "quadrantName": "Desarrollo Económico Sostenible",
-  "red": "El gobierno local tiene algunas actividades relacionadas con la industria, el comercio, el servicio y otros, pero no cuenta con un diagnóstico sobre las industrias, productos, productores, servicios y el potencial local.",
-  "yellow": "El gobierno local tiene un diagnóstico parcial de las industrias, los productos, los productores, los servicios y el potencial local. Tiene actividades aisladas pero no hay estrategias para el desarrollo sostenible relacionadas con la industria, el comercio, el servicio y otros.",
-  "green": "El gobierno local cuenta con un diagnóstico que ha identificado las industrias, los productos, los productores, los servicios y el potencial local. Cuenta con programas, estrategias y un departamento responsable del desarrollo sostenible relacionado con la industria, el comercio, los servicios y otros.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a022","6423a97572531979c162a023"
-  ]
-},
-
-{
-  "name": "Servicios públicos",
-  "description": "Servicios públicos de calidad",
-  "number": 1,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local tiene cobertura de servicios públicos básicos en casi todas las comunidades y viviendas de su territorio, pero son insuficientes.",
-  "yellow": "El gobierno local tiene cobertura de servicios públicos básicos en casi todas las comunidades y viviendas de su territorio. Se proporcionan de manera sistemática y permanente pero no son asequibles ni de calidad.",
-  "green": "El gobierno local tiene cobertura de servicios públicos básicos en todas las comunidades y viviendas de su territorio. Se proporcionan de manera responsable, sistemática, permanente, asequible y de calidad.",
-  "qualification": 0,
-  "ods": [
-    "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a025"
-  ]
-},
-
-{
-  "name": "Deporte, recreación y ocio",
-  "description": "Deportes, recreación y ocio",
-  "number": 2,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local implementa actividades aisladas para promover el deporte y la recreación en algunas etapas del desarrollo humano. Cuenta con una infraestructura recreativa y deportiva, pero no está en buenas condiciones.",
-  "yellow": "El gobierno local implementa programas para promover el deporte y la recreación en algunas etapas del desarrollo humano. Cuenta con una infraestructura recreativa y deportiva, pero no está en buenas condiciones.",
-  "green": "El gobierno local implementa programas para promover los deportes, la recreación y el ocio en cada etapa del desarrollo humano. Cuenta con infraestructura deportiva y recreativa y se mantiene sistemáticamente.",
-  "qualification": 0,
-  "ods": [
-    "Undefined"
-  ]
+  "name": "Reporte de resultados",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Migración e inclusión étnica y social",
-  "description": "Migración y promoción de la inclusión étnica y social",
-  "number": 3,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local no tiene actividades para proteger a los migrantes, promover la no discriminación y la igualdad de derechos y oportunidades.",
-  "yellow": "El gobierno local tiene algunas actividades para proteger a los migrantes, combatir la discriminación y promover la igualdad de derechos y oportunidades para que todas las personas vivan con dignidad. En algunos casos, el gobierno local organiza foros de consulta y desarrolla actividades para incluir a ciudadanos de todos los grupos étnicos y sociales",
-  "green": "El gobierno local tiene programas para proteger a los migrantes, combatir la discriminación y promover la igualdad de derechos y oportunidades para que todas las personas vivan con dignidad. Hay espacios permanentes donde los ciudadanos de todos los grupos étnicos y sociales pueden participar para reunirse y discutir asuntos delgobierno local.", 
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a022","6423a97572531979c162a024"
-  ]
+  "name": "Otros",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca037",
+  "unique":false
 },
 {
-  "name": "Igualdad de género",
-  "description": "Promoción de la igualdad de género",
-  "number": 4,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local no tiene políticas para la igualdad de género y el empoderamiento de todas las niñas y mujeres.",
-  "yellow": "El gobierno local tiene políticas y actividades para promover la igualdad de género y el empoderamiento de todas las niñas y mujeres.",
-  "green": "El gobierno local tiene un departamento responsable de implementar programas, políticas y actividades para promover la igualdad de género y el empoderamiento de todas las niñas y mujeres.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01c","6423a97572531979c162a01e","6423a97572531979c162a01f"
-  ]
+  "name": "Proyecto",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Población vulnerable y personas con discapacidad",
-  "description": "Personas con discapacidad, población en riesgo y vulnerable",
-  "number": 5,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local tiene actividades aisladas para proporcionar servicios a grupos sociales desfavorecidos pero no cuenta con un departamento responsable para dar seguimiento.",
-  "yellow": "El gobierno local tiene un departamento responsable que implementa programas para proporcionar atención y servicios especiales a grupos sociales desfavorecidos, pero no cuenta con un diagnóstico de personas con discapacidad, población en riesgo y vulnerable",
-  "green": "El gobierno local tiene un diagnóstico de personas con discapacidades, de su población en riesgo y vulnerable. Cuenta con un departamento responsable que implementa programas para proveer atención y servicios especiales a los grupos sociales desfavorecidos.",
-  "qualification": 0,
-  "ods": [
-    "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a01e","6423a97572531979c162a024"
-  ]
+  "name": "Presupuesto",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Buena salud y bienestar",
-  "description": "Promoción de la buena salud y el bienestar",
-  "number": 6,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local tiene algunas actividades relacionadas con la salud pública. No hay suficiente acceso a servicios de salud  esenciales, vacunas y medicamentos básicos.",
-  "yellow": "El gobierno local tiene un diagnóstico y programas de salud pública. Hay acceso a servicios de atención médica esenciales y acceso a medicamentos y vacunas básicas.",
-  "green": "El gobierno local promueve el derecho a la salud. Tiene un diagnóstico y programas para la prevención y la atención de la salud pública con un comité de salud local activo. Hay acceso a servicios esenciales de atención médica de calidad y acceso a medicamentos y vacunas básicas, seguras, efectivas, de buena calidad y asequibles para todos.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01c","6423a97572531979c162a01d"
-  ]
+  "name": "Otros",
+  "group": 1, 
+  "groupName":"Entrada",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Educación de calidad",
-  "description": "Promoción de la educación básica de calidad",
-  "number": 7,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local cuenta con escuelas de educación básica en su territorio local, sin embargo, no son suficientes para satisfacer la demanda de la población.",
-  "yellow": "El gobierno local cuenta con suficientes escuelas para satisfacer la demanda de educación básica de la población.",
-  "green": "El gobierno local promueve la educación básica inclusiva y de calidad. Asegura la inversión en infraestructura básica y mejoras en la calidad de la educación. Hay suficientes escuelas para satisfacer la demanda de educación básica de la población.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01e"
-  ]
+  "name": "Indicadores de seguimiento y cumplimiento",
+  "group": 2, 
+  "groupName":"Ejecución",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Vivienda digna",
-  "description": "Promoción de la vivienda digna",
-  "number": 8,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local tiene algunas actividades para que la población acceda a una vivienda. No tiene actividades para legalizar e integrar los asentamientos ilegales con la seguridad física de la tenencia.",
-  "yellow": "El gobierno local tiene actividades aisladas de acceso a la vivienda enfocados en la población vulnerable. Tiene algunas actividades para legalizar e integrar los asentamientos ilegales con la seguridad física de la tenencia.",
-  "green": "El gobierno local tiene programas para el acceso y el mejoramiento de viviendas dignas con un enfoque en la población vulnerable. Tiene programas para legalizar e integrar los asentamientos ilegales con la seguridad física de la tenencia.",
-  "qualification": 0,
-  "ods": [
-    "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a025"
-  ]
+  "name": "Otros",
+  "group": 2, 
+  "groupName":"Ejecución",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Convivencia pacífica y cultura cívica",
-  "description": "Promoción de un entorno pacífico para la convivencia y cultura cívica",
-  "number": 9,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "No hay actividades para promover los derechos políticos y sociales, la educación cívica, la participación ciudadana y la cultura de responsabilidad social.",
-  "yellow": "El gobierno local tiene algunas actividades para promover los derechos políticos y sociales, la educación cívica, la participación ciudadana y la cultura de responsabilidad social.",
-  "green": "El gobierno local tiene un programa para promover los derechos políticos y sociales, la educación cívica, la participación ciudadana, la cultura de responsabilidad social y la convivencia pacífica.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01e"
-  ]
+  "name": "Reporte de resultados",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Patrimonio cultural",
-  "description": "Promoción de la conservación del patrimonio local intangible/material; cultural, natural y mixto",
-  "number": 10,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local no tiene actividades para promover el patrimonio local intangible/material; cultural, natural y mixto.",
-  "yellow": "El gobierno local tiene algunas actividades para proteger y promover el patrimonio local intangible/material; cultural, natural y mixto. Existe un programa para mantener la infraestructura cultural.",
-  "green": "El gobierno local tiene programas para proteger, promover y preservar el patrimonio local intangible/material; cultural, natural y mixto. Existe un programa para mantener la infraestructura cultural, natural y mixta.",
-  "qualification": 0,
-  "ods": [
-      "6423a97572531979c162a025","6423a97572531979c162a026"
-  ]
+  "name": "Otros",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca038",
+  "unique":false
 },
 {
-  "name": "Fin de la pobreza",
-  "description": "Reducir la pobreza ",
-  "number": 11,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local no tiene o solo tiene actividades aisladas para proveer atención y servicios especiales a la población en situación de pobreza.",
-  "yellow": "El gobierno local tiene un vínculo con proyectos de otros niveles de gobierno y otras organizaciones públicas y privadas para reducir la pobreza. Cuenta con un departamento responsable que implementa actividades para proveer atención y servicios especiales pero no cuenta con un diagnóstico de pobreza.",
-  "green": "El gobierno local tiene un diagnóstico de pobreza en su población. Existe un vínculo con proyectos de otros niveles de gobierno y otras organizaciones públicas y privadas para reducir la pobreza. Cuenta con un departamento responsable que implementa programas para proveer atención y servicios especiales a su población en situación de pobreza.",
-  "qualification": 0,
-  "ods": [
-    "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a01c","6423a97572531979c162a024"
-  ]
+  "name": "Reporte de resultados",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca039",
+  "unique":false
 },
 {
-  "name": "Niños, jóvenes y adultos mayores",
-  "description": "Protección, inclusion y desarrollo de la infancia, juventud y personas mayores",
-  "number": 12,
-  "quadrant": 3,
-  "quadrantName": "Desarrollo Social Incluyente",
-  "red": "El gobierno local no tiene o solo tiene actividades aisladas para atender a los jóvenes y personas mayores.",
-  "yellow": "El gobierno local tiene algunas actividades para niños, jóvenes y personas mayores. Cuenta con un departamento responsable, pero no tiene un diagnóstico para estos segmentos de su población.",
-  "green": "El gobierno local tiene un diagnóstico de niños, jóvenes y personas mayores. Cuenta con programas y un departamento responsable de la protección, inclusión y desarrollo para estos segmentos de su población.",
-  "qualification": 0,
-  "ods": [
-    "641f06b3d9b5d8272b1ada4f","6423a97572531979c162a01c","6423a97572531979c162a01d","6423a97572531979c162a01e","6423a97572531979c162a01f","6423a97572531979c162a022","6423a97572531979c162a025","6423a97572531979c162a027"
-  ]
-},
-
-
-{
-  "name": "Calidad del aire",
-  "description": "Cuidado de la calidad del aire",
-  "number": 1,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene o solo tiene algunas inspecciones para emisiones de contaminantes móviles y fijos.",
-  "yellow": "El gobierno local tiene programas para contaminantes móviles y fijos y existen inspecciones de emisiones contaminantes",
-  "green": "El gobierno local tiene regulaciones y programas para inspecciones de emisiones de contaminantes móviles y fijos. Tiene un plan de contingencia adecuado para cada caso. Sus resultados son públicos.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01d","6423a97572531979c162a025","6423a97572531979c162a026"
-  ]
-},
-{
-  "name": " Residuos sólidos",
-  "description": "Gestión de residuos sólidos ",
-  "number": 2,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "Hay muchos rellenos sanitarios abiertos donde se deposita la eliminación de residuos sólidos. Hay rutas de recolección de residuos. El gobierno local tiene algunas actividades para el reciclaje de residuos sólidos.",
-  "yellow": "Solo hay un relleno sanitario abierto donde se deposita y controla la eliminación de residuos sólidos. Hay rutas de recolección de residuos. El gobierno local tiene algunas actividades de separación y reciclaje de residuos sólidos.",
-  "green": "Hay un relleno sanitario que cumple con las normas y regulaciones oficiales. Está cubierto y hay protección para el aire, el suelo y las aguas subterráneas. Hay un sistema de recolección de residuos sólidos que cubre la mayor parte del territorio del gobierno local. El gobierno local tiene un programa de separación y reciclaje de residuos sólidos.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01d","6423a97572531979c162a020","6423a97572531979c162a025","6423a97572531979c162a026"
-  ]
-},
-{
-  "name": "Imagen del entorno y atractividad",
-  "description": "Mejora de la imagen del entorno ",
-  "number": 3,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "No hay actividades para mejorar la imagen del entorno territorial del gobierno local.",
-  "yellow": "Hay algunas actividades para mejorar la imagen del entorno territorial del gobierno local, el sentido de dentidad y de pertenencia de sus clientes/ciudadanos.",
-  "green": "Hay programas para mejorar la imagen del entorno territorial del gobierno local, el sentido de identidad, de pertenencia y la salud de sus clientes/ciudadanos a través de parques, espacios abiertos, arte y acceso a la naturaleza",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a025","6423a97572531979c162a028"
-  ]
-},
-{
-  "name": "Recursos naturales, biodiversidad y ecosistema",
-  "description": "Conservación y protección de los recursos naturales, la biodiversidad y los ecosistemas",
-  "number": 4,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene actividades para la protección de los recursos de flora y fauna.",
-  "yellow": "El gobierno local tiene algunas actividades y un departamento para la conservación y protección de la flora, fauna, energía y recursos minerales. Sin embargo, no tiene un diagnóstico local.",
-  "green": "El gobierno local tiene un diagnóstico local, programas y un departamento responsable de la conservación y protección de la flora, fauna, energía y recursos minerales.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a020","6423a97572531979c162a025","6423a97572531979c162a026","6423a97572531979c162a028","6423a97572531979c162a029"
-  ]
-},
-{
-  "name": "Planificación urbana y desarrollo",
-  "description": "Sistema de gestión territorial y planificación urbana",
-  "number": 5,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local tiene algunas regulaciones para los centros poblacionales en crecimiento. Sin embargo, no se actualizan. No tiene actividades de participación de partes interesadas en el diseño de la planificación urbana.",
-  "yellow": "El gobierno local tiene regulaciones para el crecimiento de los centros poblacionales. Se actualiza continuamente y tiene actividades para la participación de las partes interesadas en el diseño de la planificación urbana.",
-  "green": "El gobierno local tiene un sistema para la planificación y regulación de la mejora y el crecimiento de los centros de población. Se actualiza continuamente y tiene un programa para la participación de las partes interesadas en el diseño, implementación, seguimiento, control y evaluación de la planificación urbana.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a025","6423a97572531979c162a027","6423a97572531979c162a029"
-  ]
-},
-{
-  "name": "Agua limpia, saneamiento y aguas residuales",
-  "description": "Agua limpia, saneamiento y tratamiento de aguas residuales",
-  "number": 6,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene programas sobre temas relacionados con el agua ni un sistema que trate las aguas residuales. Tiene regulaciones, una agencia operativa y una red de agua potable o un programa de suministro de agua y alcantarillado, pero sus resultados son inaceptables. No garantiza el derecho humano al agua potable ni al saneamiento para al menos el 75 % de todos los clientes/ciudadanos en su territorio.",
-  "yellow": "Existen algunos programas de calidad, conservación y mantenimiento de fuentes de suministro de agua, tanto para aguas subterráneas como superficiales. Tiene una planta de tratamiento de aguas residuales, sin embargo, es insuficiente o inadecuada. Existen regulaciones, una agencia operativa y una red de agua potable o un programa de suministro de agua y alcantarillado con resultados insuficientes. Garantiza el derecho humano al agua potable y al saneamiento para al menos el 75 % de todos los clientes/ciudadanos en su territorio.",
-  "green": "El gobierno local tiene programas para la calidad, la conservación y el mantenimiento de las fuentes de suministro de agua, tanto para aguas subterráneas como superficiales. Cuenta con una planta de aguas residuales. Tiene regulaciones, una agencia operativa y una red de agua potable o un programa de suministro de agua y alcantarillado. Promueve la cultura del ahorro y el uso responsable del agua en su territorio. Garantiza el derecho humano al agua potable y el saneamiento para por lo menos el 95 % de todos los clientes/ciudadanos en su territorio.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01d","6423a97572531979c162a020"
-  ]
-},
-{
-  "name": "Protección del suelo",
-  "description": "Responsable de la protección del suelo",
-  "number": 7,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene o solo tiene algunas actividades para el control de la erosión, la conservación y la reforestación.",
-  "yellow": "El gobierno local tiene programas para el control de la erosión, la conservación y la reforestación. Sin embargo, no tiene un diagnóstico.",
-  "green": "El gobierno local tiene un diagnóstico y programas para el control de la erosión, la deforestación, la conservación, la recuperación del suelo y la reforestación. La estrategia se centra en la sostenibilidad y la resiliencia de los ecosistemas",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a025","6423a97572531979c162a029"
-  ]
-},
-{
-  "name": "Energía asequible y limpia",
-  "description": "Promoción de energía asequible y limpia",
-  "number": 8,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene actividades para promover la energía asequible y limpia.",
-  "yellow": "El gobierno local tiene algunas actividades para promover la conservación y el mantenimiento de energía limpia y asequible.",
-  "green": "El gobierno local tiene programas para promover la conservación y el mantenimiento de energía asequible y limpia. Cuenta con regulaciones, una agencia operativa y una red.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a021"
-  ]
-},
-{
-  "name": "Acciones para el cambio climático y educación ambiental",
-  "description": "Acciones para combatir el cambio climático y educación ambiental",
-  "number": 9,
-  "quadrant": 4,
-  "quadrantName": "Desarrollo Ambiental Sostenible",
-  "red": "El gobierno local no tiene o solo tiene algunas actividades para combatir el cambio climático y promover la educación ambiental.",
-  "yellow": "El gobierno local tiene programas sobre acciones para combatir el cambio climático y promover la educación ambiental. Sin embargo, no cuentan con un diagnóstico del contexto local.",
-  "green": "El gobierno local tiene un diagnóstico y programas sobre acciones locales para combatir el cambio climático y promover la educación ambiental. Los clientes/ciudadanos están involucrados en la mejora continua.",
-  "qualification": 0,
-  "ods": [
-    "6423a97572531979c162a01e","6423a97572531979c162a025","6423a97572531979c162a026","6423a97572531979c162a027"
-  ]
+  "name": "Otros",
+  "group": 3, 
+  "groupName":"Finalización",
+  "required":true,
+  "tier":1,
+  "typeID":"6423abae357f0145adbca039",
+  "unique":false
 }
 ]
