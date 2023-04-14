@@ -1,29 +1,25 @@
 const mongoose = require('mongoose')
 
-const tipo = new mongoose.Schema({
-  name:{
+const commitSchema = new mongoose.Schema({
+  autor:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:true
+  },
+  body:{
     type:String,
     required:true
   },
-  red:{
-    type:String,
+  created:{
+    type:Date,
     required:true
   },
-  yellow:{
-    type:String,
-    required:true
-  },
-  green:{
-    type:String,
-    required:true
-  },
-  qualification:{
-    type:Number,
-    default:0,
+  lastUpdate:{
+    type:Date,
     required:false
-  },
+  }
 })
-tipo.set('toJSON',{
+commitSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
@@ -31,4 +27,4 @@ tipo.set('toJSON',{
   }
 })
 
-module.exports = mongoose.model('Type',tipo)
+module.exports = mongoose.model('Commit',commitSchema)

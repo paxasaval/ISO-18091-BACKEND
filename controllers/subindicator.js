@@ -1,5 +1,6 @@
 const subIndicatorRouter = require('express').Router()
-const SubIndicator = require('../models/subindicador')
+const { default: mongoose } = require('mongoose')
+const SubIndicator = require('../models/subindicator')
 
 subIndicatorRouter.get('/',(req,res,next) => {
   SubIndicator.find({})
@@ -35,12 +36,18 @@ subIndicatorRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
+  const arrayCommits = body.commits.map(commit => mongoose.Types.ObjectId(commit))
+  const arrayEvidences = body.evidences.map(evidence => mongoose.Types.ObjectId(evidence))
   const subIndicator = new SubIndicator({
+    typeID: mongoose.Types.ObjectId(body.typeID),
     name:body.name,
-    indicadorID:body.indicadorID,
     responsible:body.responsible,
-    typeID:body.typeID,
-    qualification:body.qualification
+    qualification:body.qualification,
+    create: Date.now(),
+    lastUpdate:Date.now(),
+    createdBy: mongoose.Types.ObjectId(body.createdBy),
+    commits:arrayCommits,
+    evidences:arrayEvidences
   })
   subIndicator.save()
     .then(savedSubIndicator => savedSubIndicator.toJSON())
@@ -50,12 +57,16 @@ subIndicatorRouter.post('/',(req,res,next) => {
 subIndicatorRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id
+  const arrayCommits = body.commits.map(commit => mongoose.Types.ObjectId(commit))
+  const arrayEvidences = body.evidences.map(evidence => mongoose.Types.ObjectId(evidence))
   const subIndicator = {
     name:body.name,
-    indicadorID:body.indicadorID,
     responsible:body.responsible,
     typeID:body.typeID,
-    qualification:body.qualification
+    qualification:body.qualification,
+    lastUpdate:Date.now(),
+    commits:arrayCommits,
+    evidences:arrayEvidences
   }
   SubIndicator.findByIdAndUpdate(id,subIndicator,{ new:true })
     .then(updateSubIndicator => {

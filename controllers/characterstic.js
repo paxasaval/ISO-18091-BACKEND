@@ -2,14 +2,25 @@ const characteristicRouter = require('express').Router()
 const Characteristic = require('../models/caracteristicas')
 
 characteristicRouter.get('/',(req,res,next) => {
-  Characteristic.find({})
-    .then(result => {
-      if(result.length>0){
-        res.json(result)
-      }
-    })
-    .catch(error => next(error))
+  const query = req.query
+  if(!query){
+    Characteristic.find({})
+      .then(result => {
+        if(result.length>0){
+          res.json(result)
+        }
+      })
+      .catch(error => next(error))
+  }else{
+    const type = req.query.type
+    Characteristic.find({ typeID:type })
+      .then(characteristic => {
+        res.json(characteristic)
+      })
+      .catch(error => next(error))
+  }
 })
+
 
 characteristicRouter.post('/',(req,res,next) => {
   const body = req.body

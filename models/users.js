@@ -1,32 +1,38 @@
 const mongoose = require('mongoose')
 
-const evidencias = new mongoose.Schema({
-  characteristicID:{
-    type:String,
-    required:true
-  },
-  subIndicatorID:{
-    type:String,
-    required:true
-  },
+
+const usersSchema = new mongoose.Schema({
   name:{
     type:String,
     required:true
   },
-  link:{
+  mail:{
     type:String,
     required:true
   },
-  note:{
+  password:{
     type:String,
-    required:false
+    required:true
   },
-  verified:{
+  rol:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Rol',
+    required:true
+  },
+  created:{
+    type:Date,
+    required:true
+  },
+  lastUpdate:{
+    type:Date,
+    required:true
+  },
+  state:{
     type:Boolean,
-    default:false
+    default:true
   }
 })
-evidencias.set('toJSON',{
+usersSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
@@ -34,4 +40,4 @@ evidencias.set('toJSON',{
   }
 })
 
-module.exports = mongoose.model('Note',evidencias)
+module.exports = mongoose.model('User',usersSchema)

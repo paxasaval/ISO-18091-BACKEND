@@ -1,29 +1,29 @@
 const mongoose = require('mongoose')
 
-const subIndicadorSchema = new mongoose.Schema({
-  indicadorID:{
-    type:String,
-    required:true
-  },
-  typeID:{
-    type:String,
+const evidenceSchema = new mongoose.Schema({
+  characteristicID:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Characteristic',
     required:true
   },
   name:{
     type:String,
     required:true
   },
-  responsible:{
+  link:{
     type:String,
     required:true
   },
-  qualification:{
-    type:Number,
-    default:0,
+  note:{
+    type:String,
     required:false
+  },
+  verified:{
+    type:Boolean,
+    default:false
   }
 })
-subIndicadorSchema.set('toJSON',{
+evidenceSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
@@ -31,4 +31,4 @@ subIndicadorSchema.set('toJSON',{
   }
 })
 
-module.exports = mongoose.model('SubIndicator',subIndicadorSchema)
+module.exports = mongoose.model('Evidence',evidenceSchema)

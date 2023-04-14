@@ -1,36 +1,32 @@
 const mongoose = require('mongoose')
 
-const caracteristicas = new mongoose.Schema({
-  typeID:{
-    type:String,
-    required:true
-  },
+const typeSchema = new mongoose.Schema({
   name:{
     type:String,
     required:true
   },
-  group:{
+  red:{
     type:String,
     required:true
   },
-  groupName:{
+  yellow:{
     type:String,
     required:true
   },
-  required:{
+  green:{
+    type:String,
+    required:true
+  },
+  mandatory:{
     type:Boolean,
     required:true
   },
-  tier:{
-    type:Number,
-    required:true
-  },
-  unique:{
-    type:Boolean,
-    required:true
-  }
+  characteristics:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Characteristic'
+  }]
 })
-caracteristicas.set('toJSON',{
+typeSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
@@ -38,4 +34,4 @@ caracteristicas.set('toJSON',{
   }
 })
 
-module.exports = mongoose.model('Characteristic',caracteristicas)
+module.exports = mongoose.model('Type',typeSchema)
