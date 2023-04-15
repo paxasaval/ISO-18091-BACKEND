@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const subIndicadorSchema = new mongoose.Schema({
   indicadorID:{
-    type:String,
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Indicator',
     required:true
   },
   typeID:{

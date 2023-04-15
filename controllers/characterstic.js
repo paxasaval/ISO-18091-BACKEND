@@ -1,5 +1,5 @@
 const characteristicRouter = require('express').Router()
-const Characteristic = require('../models/caracteristicas')
+const Characteristic = require('../models/characteristic')
 
 characteristicRouter.get('/',(req,res,next) => {
   const query = req.query

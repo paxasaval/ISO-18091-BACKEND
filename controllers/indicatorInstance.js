@@ -46,68 +46,51 @@ indicatorInstanceRouter.delete('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
-indicatorInstanceRouter.post('/',(req,res,next) => {
-  const body = req.body
-  if(body.name===undefined){
-    res.status(400).json({ error:'name missing' })
-  }
-  const arraySubindicators = body.subindicators.map(subindicator => mongoose.Types.ObjectId(subindicator))
-  const indicator = new IndicatorInstance({
-    indicatorID:mongoose.Types.ObjectId(body.indicatorID),
-    qualification:body.qualification,
-    create: Date.now(),
-    period: body.period,
-    createdBy: mongoose.Types.ObjectId(body.createdBy),
-    lastUpdate: Date.now(),
-    subindicators: arraySubindicators
-  })
-  indicator.save()
-    .then(savedIndicator => savedIndicator.toJSON())
-    .then(savedAndFormattedIndicator => res.json(savedAndFormattedIndicator))
-    .catch(error => next(error))
-})
-indicatorInstanceRouter.post('/newPeriod',(req,res,next) => {
-  const body = req.body
-  if(body.period===undefined){
-    res.status(400).json({ error:'period missing' })
-  }
-  Type.find({ mandatory:true })
-    .then(types => {
-      let arraySubindicator = types.map(type => {
-        let newSubindicator = new Subindicator({
-          typeID:type.id,
+
+indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
+  try{
+    const body = req.body
+    if(body.period===undefined){
+      res.status(400).json({ error:'period missing' })
+    }
+    const types = await Type.find({ mandatory:true })
+    const indicators = await Indicator.find()
+    const promises = indicators.map(async (indicator) => {
+      const instance = new IndicatorInstance({
+        indicatorID:mongoose.Types.ObjectId(indicator.id),
+        qualification:0,
+        create: Date.now(),
+        period: body.period,
+        createdBy: mongoose.Types.ObjectId(body.createdBy),
+        lastUpdate: Date.now(),
+        subindicators:[]
+      })
+      types.forEach( type => {
+        const subindicator = new Subindicator({
+          typeID: mongoose.Types.ObjectId(type.id),
+          indicadorID:instance._id,
           name:type.name,
-          responsible:'Administracion General',
+          responsible:'Administracion',
           qualification:0,
           created:Date.now(),
-          createdBy:mongoose.Types.ObjectId(body.createdBy),
           lastUpdate:Date.now(),
-          commits: [],
+          createdBy:body.createdBy,
+          commits:[],
           evidences:[]
         })
-        return newSubindicator
+        instance.subindicators.push(subindicator._id)
       })
-      Indicator.find({})
-        .then(indicators => {
-          indicators.map(indicator => {
-            let newIndicadorInstance = new IndicatorInstance({
-              indicatorID:mongoose.Types.ObjectId(indicator.id),
-              qualification:0,
-              create: Date.now(),
-              period: body.period,
-              createdBy: mongoose.Types.ObjectId(body.createdBy),
-              lastUpdate: Date.now(),
-              subindicators: arraySubindicator
-            })
-            newIndicadorInstance.save()
-              .then(savedIndicator => savedIndicator.toJSON())
-              .then(savedAndFormattedIndicator => res.json(savedAndFormattedIndicator))
-              .catch(error => next(error))
-          })
-        })
+      const savedIndicator = await instance.save()
+      const savedAndFormattedIndicator = savedIndicator.toJSON()
+      return savedAndFormattedIndicator
     })
-
+    const savedInstances = await Promise.all(promises)
+    res.json(savedInstances)
+  }catch(error){
+    next(error)
+  }
 })
+
 indicatorInstanceRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id

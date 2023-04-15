@@ -1,5 +1,5 @@
 const evidenveRouter = require('express').Router()
-const Evidenve = require('../models/evidencias')
+const Evidenve = require('../models/evidence')
 
 evidenveRouter.get('/',(req,res,next) => {
   Evidenve.find({})
