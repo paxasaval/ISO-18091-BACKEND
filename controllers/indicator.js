@@ -46,7 +46,11 @@ indicatorRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
-  const arrayODS = body.ods.map( ods => mongoose.Types.ObjectId(ods))
+  console.log(body.ods)
+  const arrayODS = body.ods.map( ods => {
+    console.log(ods)
+    mongoose.Types.ObjectId(ods)
+  })
   const indicator = new Indicator({
     name:body.name,
     description:body.description,
