@@ -50,7 +50,7 @@ indicatorRouter.post('/',(req,res,next) => {
   console.log(body.ods)
   const arrayODS = body.ods.map( ods => {
     console.log(ods)
-    mongoose.Types.ObjectId(ods)
+    return new mongoose.Types.ObjectId(ods)
   })
   const indicator = new Indicator({
     name:body.name,
