@@ -22,6 +22,8 @@ userRouter.post('/',(req,res,next) => {
     mail:body.mail,
     password:body.password,
     rol:mongoose.Types.ObjectId(body.rol),
+    created:new Date(),
+    lastUpdate: new Date(),
     state:true
   })
   user.save()
