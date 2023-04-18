@@ -46,6 +46,7 @@ indicatorRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
+  console.log('ods')
   console.log(body.ods)
   const arrayODS = body.ods.map( ods => {
     console.log(ods)
