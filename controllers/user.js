@@ -21,7 +21,8 @@ userRouter.post('/',(req,res,next) => {
     name: body.name,
     mail:body.mail,
     password:body.password,
-    rol:mongoose.Types.ObjectId(body.rol)
+    rol:mongoose.Types.ObjectId(body.rol),
+    state:true
   })
   user.save()
     .then(savedOds => savedOds.toJSON())
