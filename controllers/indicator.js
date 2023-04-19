@@ -6,6 +6,7 @@ indicatorRouter.get('/',(req,res,next) => {
   console.log(req.query)
   if(Object.entries(req.query).length === 0){
     Indicator.find({})
+      .populate()
       .then(indicators => {
         res.json(indicators)
       })
