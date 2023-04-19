@@ -4,6 +4,7 @@ const User = require('../models/users')
 
 userRouter.get('/',(req,res,next) => {
   User.find({})
+    .populate('rol')
     .then(result => {
       if(result.length>0){
         res.json(result)
@@ -21,7 +22,7 @@ userRouter.post('/',(req,res,next) => {
     name: body.name,
     mail:body.mail,
     password:body.password,
-    rol:mongoose.Types.ObjectId(body.rol),
+    rol: new mongoose.Types.ObjectId(body.rol),
     created:new Date(),
     lastUpdate: new Date(),
     state:true
@@ -35,6 +36,7 @@ userRouter.post('/',(req,res,next) => {
 userRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   User.findById(id)
+    .populate('rol')
     .then(result => {
       if(result){
         res.json(result)
@@ -61,7 +63,8 @@ userRouter.put('/:id',(req,res,next) => {
     name: body.name,
     mail:body.mail,
     password:body.password,
-    rol:mongoose.Types.ObjectId(body.rol)
+    rol:new mongoose.Types.ObjectId(body.rol),
+    lastUpdate: new Date()
   }
   User.findByIdAndUpdate(id,user,{ new:true })
     .then((updateUser) => {

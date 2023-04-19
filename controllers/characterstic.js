@@ -31,9 +31,9 @@ characteristicRouter.post('/',(req,res,next) => {
     name: body.name,
     group: body.group,
     groupName: body.groupName,
+    isRequired:true,
     required: body.required,
     tier: body.tier,
-    typeID: body.typeID,
     unique: body.unique
   })
   characteristic.save()
@@ -73,7 +73,7 @@ characteristicRouter.put('/:id',(req,res,next) => {
     groupName: body.groupName,
     required: body.required,
     tier: body.tier,
-    typeID: body.typeID,
+    isRequired: body.isRequired,
     unique: body.unique
   }
   Characteristic.findByIdAndUpdate(id,characteristic,{ new:true })

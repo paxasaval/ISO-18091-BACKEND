@@ -8,8 +8,9 @@ const Type = require('../models/type')
 
 
 indicatorInstanceRouter.get('/',(req,res,next) => {
-  if(!req.query){
+  if(Object.entries(req.query)===0){
     IndicatorInstance.find({})
+      .populate('subindicators')
       .then(indicators => {
         res.json(indicators)
       })
@@ -17,7 +18,9 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
   }else{
     const quadrant = Number(req.query.quadrant)
     console.log(req.query)
-    IndicatorInstance.find({ quadrant:quadrant }).sort('number')
+    IndicatorInstance.find({ quadrant:quadrant })
+      .populate('subindicators')
+      .sort('number')
       .then(indicators => {
         res.json(indicators)
       })
@@ -28,6 +31,7 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
 indicatorInstanceRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   IndicatorInstance.findById(id)
+    .populate('subindicators')
     .then(indicator => {
       if(indicator){
         res.json(indicator)
@@ -57,23 +61,23 @@ indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
     const indicators = await Indicator.find()
     const promises = indicators.map(async (indicator) => {
       const instance = new IndicatorInstance({
-        indicatorID:mongoose.Types.ObjectId(indicator.id),
+        indicatorID: new mongoose.Types.ObjectId(indicator.id),
         qualification:0,
-        create: Date.now(),
+        create: new Date(),
         period: body.period,
-        createdBy: mongoose.Types.ObjectId(body.createdBy),
-        lastUpdate: Date.now(),
+        createdBy: new mongoose.Types.ObjectId(body.createdBy),
+        lastUpdate: new Date(),
         subindicators:[]
       })
       types.forEach( type => {
         const subindicator = new Subindicator({
-          typeID: mongoose.Types.ObjectId(type.id),
+          typeID: new mongoose.Types.ObjectId(type.id),
           indicadorID:instance._id,
           name:type.name,
           responsible:'Administracion',
           qualification:0,
-          created:Date.now(),
-          lastUpdate:Date.now(),
+          created: new Date(),
+          lastUpdate:new Date(),
           createdBy:body.createdBy,
           commits:[],
           evidences:[]
@@ -97,7 +101,7 @@ indicatorInstanceRouter.put('/:id',(req,res,next) => {
   const arraySubindicators = body.subindicators.map( subindicator => new mongoose.Types.ObjectId(subindicator))
   const indicator = {
     qualification:body.qualification,
-    lastUpdate: Date.now(),
+    lastUpdate: new Date(),
     subindicators: arraySubindicators
   }
   IndicatorInstance.findByIdAndUpdate(id,indicator,{ new:true })

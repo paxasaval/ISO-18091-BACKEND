@@ -4,6 +4,8 @@ const SubIndicator = require('../models/subindicator')
 
 subIndicatorRouter.get('/',(req,res,next) => {
   SubIndicator.find({})
+    .populate('commits')
+    .populate('envidences')
     .then(subIndicators => {
       res.json(subIndicators)
     })
@@ -13,6 +15,8 @@ subIndicatorRouter.get('/',(req,res,next) => {
 subIndicatorRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   SubIndicator.findById(id)
+    .populate('commits')
+    .populate('envidences')
     .then(subIndicator => {
       if(subIndicator){
         res.json(subIndicator)
@@ -39,13 +43,14 @@ subIndicatorRouter.post('/',(req,res,next) => {
   const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
   const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
   const subIndicator = new SubIndicator({
-    typeID: mongoose.Types.ObjectId(body.typeID),
+    indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
+    typeID: new mongoose.Types.ObjectId(body.typeID),
     name:body.name,
     responsible:body.responsible,
     qualification:body.qualification,
-    create: Date.now(),
-    lastUpdate:Date.now(),
-    createdBy: mongoose.Types.ObjectId(body.createdBy),
+    created: new Date(),
+    lastUpdate: new Date(),
+    createdBy: new mongoose.Types.ObjectId(body.createdBy),
     commits:arrayCommits,
     evidences:arrayEvidences
   })
@@ -64,7 +69,7 @@ subIndicatorRouter.put('/:id',(req,res,next) => {
     responsible:body.responsible,
     typeID:body.typeID,
     qualification:body.qualification,
-    lastUpdate:Date.now(),
+    lastUpdate:new Date(),
     commits:arrayCommits,
     evidences:arrayEvidences
   }

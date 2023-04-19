@@ -6,7 +6,7 @@ indicatorRouter.get('/',(req,res,next) => {
   console.log(req.query)
   if(Object.entries(req.query).length === 0){
     Indicator.find({})
-      .populate()
+      .populate('ods')
       .then(indicators => {
         res.json(indicators)
       })
@@ -14,7 +14,9 @@ indicatorRouter.get('/',(req,res,next) => {
   }else{
     const quadrant = Number(req.query.quadrant)
     console.log(req.query)
-    Indicator.find({ quadrant:quadrant }).sort('number')
+    Indicator.find({ quadrant:quadrant })
+      .populate('ods')
+      .sort('number')
       .then(indicators => {
         res.json(indicators)
       })
@@ -25,6 +27,7 @@ indicatorRouter.get('/',(req,res,next) => {
 indicatorRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   Indicator.findById(id)
+    .populate('ods')
     .then(indicator => {
       if(indicator){
         res.json(indicator)

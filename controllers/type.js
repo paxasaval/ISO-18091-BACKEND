@@ -4,6 +4,7 @@ const Type = require('../models/type')
 
 typeRouter.get('/',(req,res,next) => {
   Type.find({})
+    .populate('characteristics')
     .then(types => {
       res.json(types)
     })
@@ -13,6 +14,7 @@ typeRouter.get('/',(req,res,next) => {
 typeRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   Type.findById(id)
+    .populate('characteristics')
     .then(type => {
       if(type){
         res.json(type)

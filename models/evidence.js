@@ -6,6 +6,11 @@ const evidenceSchema = new mongoose.Schema({
     ref:'Characteristic',
     required:true
   },
+  subIndicatorID:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'subindicator',
+    required:false
+  },
   name:{
     type:String,
     required:true
