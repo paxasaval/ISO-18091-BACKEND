@@ -31,10 +31,10 @@ characteristicRouter.post('/',(req,res,next) => {
     name: body.name,
     group: body.group,
     groupName: body.groupName,
-    isRequired:true,
-    required: body.required,
+    isRequired: body.isRequired || true,
+    required: body.required || true,
     tier: body.tier,
-    unique: body.unique
+    unique: body.unique || false
   })
   characteristic.save()
     .then(savedCharacteristic => savedCharacteristic.toJSON())

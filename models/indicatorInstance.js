@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 const indicadorInstanceSchema = new mongoose.Schema({
   indicatorID: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   qualification: {

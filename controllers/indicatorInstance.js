@@ -5,12 +5,12 @@ const Indicator = require('../models/indicator')
 const Subindicator = require('../models/subindicator')
 const Type = require('../models/type')
 
-
-
 indicatorInstanceRouter.get('/',(req,res,next) => {
   if(Object.entries(req.query)===0){
     IndicatorInstance.find({})
       .populate('subindicators')
+      .populate('')
+      .populate({ path:'subindicators.',model:'' })
       .then(indicators => {
         res.json(indicators)
       })
