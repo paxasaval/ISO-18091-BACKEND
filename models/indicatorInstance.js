@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const indicadorInstanceSchema = new mongoose.Schema({
   indicatorID: {
     type: mongoose.Schema.Types.ObjectId,
+    ref:'Indicator',
     required: true,
   },
   qualification: {

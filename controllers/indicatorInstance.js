@@ -6,21 +6,28 @@ const Subindicator = require('../models/subindicator')
 const Type = require('../models/type')
 
 indicatorInstanceRouter.get('/',(req,res,next) => {
+  console.log(req.query)
   if(Object.entries(req.query)===0){
     IndicatorInstance.find({})
-      .populate('subindicators')
-      .populate('')
-      .populate({ path:'subindicators.',model:'' })
+      .populate({ path:'subindicators',model:'SubIndicator' })
+      .populate({ path:'subindicators.createdBy',model:'User' })
       .then(indicators => {
         res.json(indicators)
       })
       .catch(error => next(error))
   }else{
-    const quadrant = Number(req.query.quadrant)
-    console.log(req.query)
-    IndicatorInstance.find({ quadrant:quadrant })
-      .populate('subindicators')
-      .sort('number')
+    const period = req.query.period
+    //const quadrant = Number(req.query.quadrant)
+    IndicatorInstance.find({ period:period })
+      .populate({
+        path:'indicatorID',
+        populate: { path:'ods' }
+      })
+      .populate({
+        path:'subindicators',
+        model:'SubIndicator',
+        populate: { path:'createdBy' }
+      })
       .then(indicators => {
         res.json(indicators)
       })
@@ -69,7 +76,7 @@ indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
         lastUpdate: new Date(),
         subindicators:[]
       })
-      types.forEach( type => {
+      types.forEach(type => {
         const subindicator = new Subindicator({
           typeID: new mongoose.Types.ObjectId(type.id),
           indicadorID:instance._id,
@@ -82,6 +89,7 @@ indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
           commits:[],
           evidences:[]
         })
+        subindicator.save()
         instance.subindicators.push(subindicator._id)
       })
       const savedIndicator = await instance.save()

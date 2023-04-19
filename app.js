@@ -13,6 +13,7 @@ const subIndicatorRouter = require('./controllers/subindicator')
 const evidenveRouter = require('./controllers/evidence')
 const rolRouter = require('./controllers/rol')
 const userRouter = require('./controllers/user')
+const commitRouter = require('./controllers/commit')
 //Utils
 const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
@@ -43,7 +44,9 @@ app.use('/api/type',typeRouter)
 app.use('/api/characteristics',characteristicRouter)
 app.use('/api/subIndicators',subIndicatorRouter)
 app.use('/api/indicatorsInstance',indicatorInstanceRouter)
-app.use('/api/evidence',evidenveRouter)
+app.use('/api/evidences',evidenveRouter)
+app.use('/api/commits',commitRouter)
+
 //
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

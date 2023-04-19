@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const subIndicadorSchema = new mongoose.Schema({
   indicadorID:{
     type:mongoose.Schema.Types.ObjectId,
-    ref:'Indicator',
+    ref:'IndicatorInstance',
     required:true
   },
   typeID:{
@@ -40,12 +40,10 @@ const subIndicadorSchema = new mongoose.Schema({
   commits:[{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Commit',
-    required:false
   }],
   evidences:[{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Evidence',
-    required:false
   }]
 
 })
