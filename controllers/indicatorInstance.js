@@ -94,7 +94,7 @@ indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
 indicatorInstanceRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id
-  const arraySubindicators = body.subindicators.map( subindicator => mongoose.Types.ObjectId(subindicator))
+  const arraySubindicators = body.subindicators.map( subindicator => new mongoose.Types.ObjectId(subindicator))
   const indicator = {
     qualification:body.qualification,
     lastUpdate: Date.now(),

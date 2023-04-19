@@ -36,7 +36,7 @@ typeRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
-  const arrayCharacteristics = body.characteristics.map(characteristic => mongoose.Types.ObjectId(characteristic))
+  const arrayCharacteristics = body.characteristics.map(characteristic => new mongoose.Types.ObjectId(characteristic))
   const type = new Type({
     name:body.name,
     green:body.green,
@@ -53,7 +53,7 @@ typeRouter.post('/',(req,res,next) => {
 typeRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id
-  const arrayCharacteristics = body.characteristics.map(characteristic => mongoose.Types.ObjectId(characteristic))
+  const arrayCharacteristics = body.characteristics.map(characteristic => new mongoose.Types.ObjectId(characteristic))
   const type = {
     name:body.name,
     green:body.green,
