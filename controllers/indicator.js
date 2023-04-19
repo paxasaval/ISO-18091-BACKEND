@@ -3,6 +3,7 @@ const { default: mongoose } = require('mongoose')
 const Indicator = require('../models/indicator')
 
 indicatorRouter.get('/',(req,res,next) => {
+  console.log(req.query)
   if(!req.query){
     Indicator.find({})
       .then(indicators => {
