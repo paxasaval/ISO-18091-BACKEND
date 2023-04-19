@@ -2,7 +2,10 @@ const config = require('./utils/config')
 const mongoose = require('mongoose')
 const logger = require('./utils/logger')
 const fs = require('fs')
-const Type = require('./models/tipo')
+const rol = require('./models/rol')
+const user = require ('./models/users')
+const ods = require ('./models/ods')
+const indicator = require ('./models/indicator')
 mongoose
   .connect(config.MONGODB_URI)
   .then(() => {
@@ -19,7 +22,7 @@ const saveData = () => {
   //console.log(jsonData)
   let index = 0
   jsonData.map((data) => {
-    const newData = new Type({ ...data })
+    const newData = new indicator({ ...data })
     //    console.log(newData)
     newData.save().then(() => {
       index += 1
