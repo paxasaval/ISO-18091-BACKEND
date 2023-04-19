@@ -36,8 +36,8 @@ subIndicatorRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
-  const arrayCommits = body.commits.map(commit => mongoose.Types.ObjectId(commit))
-  const arrayEvidences = body.evidences.map(evidence => mongoose.Types.ObjectId(evidence))
+  const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
+  const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
   const subIndicator = new SubIndicator({
     typeID: mongoose.Types.ObjectId(body.typeID),
     name:body.name,
@@ -57,8 +57,8 @@ subIndicatorRouter.post('/',(req,res,next) => {
 subIndicatorRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id
-  const arrayCommits = body.commits.map(commit => mongoose.Types.ObjectId(commit))
-  const arrayEvidences = body.evidences.map(evidence => mongoose.Types.ObjectId(evidence))
+  const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
+  const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
   const subIndicator = {
     name:body.name,
     responsible:body.responsible,
