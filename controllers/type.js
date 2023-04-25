@@ -2,72 +2,89 @@ const typeRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const Type = require('../models/type')
 
-typeRouter.get('/',(req,res,next) => {
-  Type.find({})
-    .populate('characteristics')
-    .then(types => {
-      res.json(types)
-    })
-    .catch(error => next(error))
+typeRouter.get('/', (req, res, next) => {
+  if (req.query.mandatory) {
+    console.log(req.query.mandatory)
+    const mandatory = req.query.mandatory === 'true' ? true : false
+    console.log(mandatory)
+    Type.find({ mandatory:mandatory })
+      .populate('characteristics')
+      .then((types) => {
+        res.json(types)
+      })
+      .catch((error) => next(error))
+  } else {
+    Type.find({})
+      .populate('characteristics')
+      .then((types) => {
+        res.json(types)
+      })
+      .catch((error) => next(error))
+  }
 })
 
-typeRouter.get('/:id',(req,res,next) => {
+typeRouter.get('/:id', (req, res, next) => {
   const id = req.params.id
   Type.findById(id)
     .populate('characteristics')
-    .then(type => {
-      if(type){
+    .then((type) => {
+      if (type) {
         res.json(type)
-      }else{
+      } else {
         res.status(404).end()
       }
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
 
-typeRouter.delete('/:id',(req,res,next) => {
+typeRouter.delete('/:id', (req, res, next) => {
   const id = req.params.id
   Type.findByIdAndDelete(id)
     .then(() => {
       res.status(204).end()
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
-typeRouter.post('/',(req,res,next) => {
+typeRouter.post('/', (req, res, next) => {
   const body = req.body
-  if(body.name===undefined){
-    res.status(400).json({ error:'name missing' })
+  if (body.name === undefined) {
+    res.status(400).json({ error: 'name missing' })
   }
-  const arrayCharacteristics = body.characteristics.map(characteristic => new mongoose.Types.ObjectId(characteristic))
+  const arrayCharacteristics = body.characteristics.map(
+    (characteristic) => new mongoose.Types.ObjectId(characteristic)
+  )
   const type = new Type({
-    name:body.name,
-    green:body.green,
-    yellow:body.yellow,
-    red:body.red,
-    mandatory:body.mandatory,
-    characteristics:arrayCharacteristics
+    name: body.name,
+    green: body.green,
+    yellow: body.yellow,
+    red: body.red,
+    mandatory: body.mandatory,
+    characteristics: arrayCharacteristics,
   })
-  type.save()
-    .then(savedType => savedType.toJSON())
-    .then(savedAndFormattedType => res.json(savedAndFormattedType))
-    .catch(error => next(error))
+  type
+    .save()
+    .then((savedType) => savedType.toJSON())
+    .then((savedAndFormattedType) => res.json(savedAndFormattedType))
+    .catch((error) => next(error))
 })
-typeRouter.put('/:id',(req,res,next) => {
+typeRouter.put('/:id', (req, res, next) => {
   const body = req.body
   const id = req.params.id
-  const arrayCharacteristics = body.characteristics.map(characteristic => new mongoose.Types.ObjectId(characteristic))
+  const arrayCharacteristics = body.characteristics.map(
+    (characteristic) => new mongoose.Types.ObjectId(characteristic)
+  )
   const type = {
-    name:body.name,
-    green:body.green,
-    yellow:body.yellow,
-    red:body.red,
-    mandatory:body.mandatory,
-    characteristics:arrayCharacteristics
+    name: body.name,
+    green: body.green,
+    yellow: body.yellow,
+    red: body.red,
+    mandatory: body.mandatory,
+    characteristics: arrayCharacteristics,
   }
-  Type.findByIdAndUpdate(id,type,{ new:true })
-    .then(updatetype => {
+  Type.findByIdAndUpdate(id, type, { new: true })
+    .then((updatetype) => {
       res.json(updatetype)
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
 module.exports = typeRouter

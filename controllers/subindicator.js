@@ -6,6 +6,10 @@ subIndicatorRouter.get('/',(req,res,next) => {
   SubIndicator.find({})
     .populate({ path:'commits',model:'Commit' })
     .populate({ path:'evidences',model:'Evidence' })
+    .populate({
+      path:'typeID',
+      populate:{ path:'characteristics' }
+    })
     .populate('createdBy')
     .then(subIndicators => {
       res.json(subIndicators)
@@ -16,8 +20,13 @@ subIndicatorRouter.get('/',(req,res,next) => {
 subIndicatorRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   SubIndicator.findById(id)
-    .populate('commits')
-    .populate('evidences')
+    .populate({ path:'commits',model:'Commit' })
+    .populate({ path:'evidences',model:'Evidence' })
+    .populate({
+      path:'typeID',
+      populate:{ path:'characteristics' }
+    })
+    .populate('createdBy')
     .then(subIndicator => {
       if(subIndicator){
         res.json(subIndicator)
