@@ -38,7 +38,18 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
 indicatorInstanceRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   IndicatorInstance.findById(id)
-    .populate('subindicators')
+    .populate({
+      path:'indicatorID',
+      populate: { path:'ods' }
+    })
+    .populate({
+      path:'subindicators',
+      model:'SubIndicator',
+      populate: [
+        { path:'createdBy' },
+        { path:'evidences' }
+      ]
+    })
     .then(indicator => {
       if(indicator){
         res.json(indicator)

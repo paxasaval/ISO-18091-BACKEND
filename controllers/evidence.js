@@ -1,5 +1,7 @@
 const evidenveRouter = require('express').Router()
 const Evidenve = require('../models/evidence')
+//const { default: mongoose } = require('mongoose')
+const Subindicator = require('../models/subindicator')
 
 evidenveRouter.get('/',(req,res,next) => {
   Evidenve.find({})
@@ -30,25 +32,32 @@ evidenveRouter.delete('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
-evidenveRouter.post('/',(req,res,next) => {
-  const body = req.body
-  if(body.name===undefined){
-    res.status(400).json({ error:'name missing' })
+evidenveRouter.post('/',async (req,res,next) => {
+  try {
+    const body = req.body
+    if(body.name===undefined){
+      res.status(400).json({ error:'name missing' })
+    }
+    const evidenve = new Evidenve({
+      name:body.name,
+      characteristicID:body.characteristicID,
+      subIndicatorID:body.subIndicatorID,
+      link:body.link,
+      verified:body.verified || false,
+      note:body.note,
+    })
+    const savedEvidence = await evidenve.save()
+    const updatedSubindicator = await updateSubindicator(savedEvidence)
+    console.log(updatedSubindicator)
+    const savedAndFormattedevidenve = savedEvidence.toJSON()
+    res.json(savedAndFormattedevidenve)
+  } catch (error) {
+    next(error)
   }
-  const evidenve = new Evidenve({
-    name:body.name,
-    characteristicID:body.characteristicID,
-    subIndicatorID:body.subIndicatorID,
-    link:body.link,
-    verified:body.verified || false,
-    note:body.note,
 
-  })
-  evidenve.save()
-    .then(savedevidenve => savedevidenve.toJSON())
-    .then(savedAndFormattedevidenve => res.json(savedAndFormattedevidenve))
-    .catch(error => next(error))
+
 })
+
 evidenveRouter.put('/:id',(req,res,next) => {
   const body = req.body
   const id = req.params.id
@@ -67,3 +76,15 @@ evidenveRouter.put('/:id',(req,res,next) => {
     .catch(error => next(error))
 })
 module.exports = evidenveRouter
+
+const updateSubindicator = async(evidence) => {
+  const subindicatorID =String(evidence.subIndicatorID)
+  const subindcator = await Subindicator.findById(subindicatorID)
+  console.log(subindcator)
+  const arrayEvidences = subindcator.evidences
+  arrayEvidences.push(evidence)
+  subindcator.evidences = arrayEvidences
+  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
+  console.log(subindicatorUpdate)
+  return subindicatorUpdate
+}
