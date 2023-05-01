@@ -1,16 +1,16 @@
 const userRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const User = require('../models/users')
+const jwt = require('jsonwebtoken')
+const secretKey = 'baldurWatch.01'
+const bcrypt = require('bcrypt')
+const Rol = require('../models/rol')
 
-userRouter.get('/',(req,res,next) => {
-  User.find({})
-    .populate('rol')
-    .then(result => {
-      if(result.length>0){
-        res.json(result)
-      }
-    })
-    .catch(error => next(error))
+userRouter.get('/',async (req,res) => {
+  const users = await User.find().populate('rol')
+  if(users.length>0){
+    res.status(200).json(users)
+  }
 })
 
 userRouter.post('/',(req,res,next) => {
@@ -32,6 +32,36 @@ userRouter.post('/',(req,res,next) => {
     .then(savedAndFormattedOds => res.json(savedAndFormattedOds))
     .catch(error => next(error))
 })
+
+userRouter.post('/signUp', async (req,res,next) => {
+  try {
+    const body = req.body
+    const saltRounds = 10
+    const passwordHash = await bcrypt.hash(body.password,saltRounds)
+
+    const rol = await Rol.findById(body.rol)
+    console.log(rol,'sds')
+    const user = new User({
+      name: body.name,
+      mail: body.mail,
+      password:passwordHash,
+      rol: rol._id,
+      created:new Date(),
+      lastUpdate: new Date(),
+      state:true
+    })
+
+    const savedUser = await user.save()
+
+    res.json(savedUser)
+  } catch (error) {
+    console.log(error)
+    next(error)
+  }
+
+})
+
+//userRouter.post()
 
 userRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
@@ -72,4 +102,5 @@ userRouter.put('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
+
 module.exports = userRouter

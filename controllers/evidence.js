@@ -81,9 +81,9 @@ const updateSubindicator = async(evidence) => {
   const subindicatorID =String(evidence.subIndicatorID)
   const subindcator = await Subindicator.findById(subindicatorID)
   console.log(subindcator)
-  const arrayEvidences = subindcator.evidences
-  arrayEvidences.push(evidence)
-  subindcator.evidences = arrayEvidences
+  //const arrayEvidences = subindcator.evidences
+  //arrayEvidences.push(evidence)
+  subindcator.evidences = subindcator.evidences.concat(evidence)
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
   console.log(subindicatorUpdate)
   return subindicatorUpdate

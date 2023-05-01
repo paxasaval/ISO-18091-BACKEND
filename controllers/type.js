@@ -2,13 +2,19 @@ const typeRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const Type = require('../models/type')
 
-typeRouter.get('/',(req,res,next) => {
-  Type.find({})
-    .populate('characteristics')
-    .then(types => {
+typeRouter.get('/',async(req,res,next) => {
+  try{
+    if(req.query.mandatory){
+      const mandatory = Boolean(req.query.mandatory)
+      const types = await Type.find({ mandatory:mandatory }).populate('characteristics')
       res.json(types)
-    })
-    .catch(error => next(error))
+    }else{
+      const types = await Type.find({}).populate('characteristics')
+      res.json(types)
+    }
+  }catch(error){
+    next(error)
+  }
 })
 
 typeRouter.get('/:id',(req,res,next) => {

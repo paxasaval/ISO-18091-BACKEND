@@ -17,7 +17,8 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
       .catch(error => next(error))
   }else{
     const period = req.query.period
-    //const quadrant = Number(req.query.quadrant)
+    const quadrant = Number(req.query.quadrant)
+    //console.log(quadrant)
     IndicatorInstance.find({ period:period })
       .populate({
         path:'indicatorID',
@@ -29,7 +30,7 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
         populate: { path:'createdBy' }
       })
       .then(indicators => {
-        res.json(indicators)
+        res.json(indicators.filter(indicator => indicator.indicatorID.quadrant === quadrant).sort((a,b) => a.indicatorID.number - b.indicatorID.number ))
       })
       .catch(error => next(error))
   }

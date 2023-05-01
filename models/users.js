@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-
+const uniqueValidator = require('mongoose-unique-validator')
 
 const usersSchema = new mongoose.Schema({
   name:{
@@ -8,7 +8,8 @@ const usersSchema = new mongoose.Schema({
   },
   mail:{
     type:String,
-    required:true
+    required:true,
+    unique:true
   },
   password:{
     type:String,
@@ -32,12 +33,16 @@ const usersSchema = new mongoose.Schema({
     default:true
   }
 })
+
+usersSchema.plugin(uniqueValidator)
+
 usersSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     if(returnObj._id){
       returnObj.id = returnObj._id.toString()
       delete returnObj._id
       delete returnObj.__v
+      delete returnObj.password
     }
   }
 })
