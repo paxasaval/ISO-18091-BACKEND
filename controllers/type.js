@@ -4,9 +4,11 @@ const Type = require('../models/type')
 
 typeRouter.get('/',async(req,res,next) => {
   try{
-    if(req.query.mandatory){
-      const mandatory = Boolean(req.query.mandatory)
-      const types = await Type.find({ mandatory:mandatory }).populate('characteristics')
+    let mandatory = req.query.mandatory
+    if(mandatory){
+      const mandatoryB = mandatory==='true'?true:false
+      console.log(mandatory)
+      const types = await Type.find({ mandatory:mandatoryB }).populate('characteristics')
       res.json(types)
     }else{
       const types = await Type.find({}).populate('characteristics')

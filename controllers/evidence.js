@@ -2,6 +2,14 @@ const evidenveRouter = require('express').Router()
 const Evidenve = require('../models/evidence')
 //const { default: mongoose } = require('mongoose')
 const Subindicator = require('../models/subindicator')
+const jwt = require('jsonwebtoken')
+const { getTokenFrom } = require('../utils/middleware')
+const Rol = require('../models/rol')
+
+//const ROL_ADMIN = process.env.ROL_ADMIN
+//const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
+const ROL_USER = process.env.ROL_USER
+
 
 evidenveRouter.get('/',(req,res,next) => {
   Evidenve.find({})
@@ -35,6 +43,21 @@ evidenveRouter.delete('/:id',(req,res,next) => {
 evidenveRouter.post('/',async (req,res,next) => {
   try {
     const body = req.body
+    //Authorizaction
+    const token = getTokenFrom(req)
+    const decodedToken = jwt.verify(token,process.env.SECRET)
+    if(!token||!decodedToken){
+      return res.status(401).json({ error: 'token missing or invalid' })
+    }else{
+      const rolID = decodedToken.rol
+      const rol = await Rol.findById(rolID)
+      if(!rol){
+        return res.status(401).json({ error: 'rol missing or invalid' })
+      }else if(rol.name===ROL_USER){
+        return res.status(401).json({ error: 'unauthorized rol' })
+      }
+    }
+    //end-authorization
     if(body.name===undefined){
       res.status(400).json({ error:'name missing' })
     }
@@ -47,8 +70,8 @@ evidenveRouter.post('/',async (req,res,next) => {
       note:body.note,
     })
     const savedEvidence = await evidenve.save()
-    const updatedSubindicator = await updateSubindicator(savedEvidence)
-    console.log(updatedSubindicator)
+    await updateSubindicator(savedEvidence)
+    //console.log(updatedSubindicator)
     const savedAndFormattedevidenve = savedEvidence.toJSON()
     res.json(savedAndFormattedevidenve)
   } catch (error) {
@@ -80,11 +103,11 @@ module.exports = evidenveRouter
 const updateSubindicator = async(evidence) => {
   const subindicatorID =String(evidence.subIndicatorID)
   const subindcator = await Subindicator.findById(subindicatorID)
-  console.log(subindcator)
+  //console.log(subindcator)
   //const arrayEvidences = subindcator.evidences
   //arrayEvidences.push(evidence)
   subindcator.evidences = subindcator.evidences.concat(evidence)
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
-  console.log(subindicatorUpdate)
+  //console.log(subindicatorUpdate)
   return subindicatorUpdate
 }

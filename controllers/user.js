@@ -1,8 +1,8 @@
 const userRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const User = require('../models/users')
-const jwt = require('jsonwebtoken')
-const secretKey = 'baldurWatch.01'
+//const jwt = require('jsonwebtoken')
+//const secretKey = 'baldurWatch.01'
 const bcrypt = require('bcrypt')
 const Rol = require('../models/rol')
 
