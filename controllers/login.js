@@ -27,7 +27,9 @@ loginRouter.post('/',async(req,res) => {
     process.env.SECRET,
     { expiresIn: 60*60 }
   )
-
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-client-key, x-client-token, x-client-secret, Authorization')
   res
     .status(200)
     .send({ token,mail:user.mail,name:user.name,rol:user.rol,id:user.id })
