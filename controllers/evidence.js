@@ -10,6 +10,15 @@ const Rol = require('../models/rol')
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
 
+const updateSubindicator = async(evidence) => {
+  const subindicatorID =String(evidence.subIndicatorID)
+  const subindcator = await Subindicator.findById(subindicatorID)
+
+  subindcator.evidences = subindcator.evidences.concat(evidence)
+  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
+
+  return subindicatorUpdate
+}
 
 evidenveRouter.get('/',(req,res,next) => {
   Evidenve.find({})
@@ -70,8 +79,8 @@ evidenveRouter.post('/',async (req,res,next) => {
       note:body.note,
     })
     const savedEvidence = await evidenve.save()
-    await updateSubindicator(savedEvidence)
-    //console.log(updatedSubindicator)
+    const updatedSubindicator = await updateSubindicator(savedEvidence)
+    console.log(updatedSubindicator)
     const savedAndFormattedevidenve = savedEvidence.toJSON()
     res.json(savedAndFormattedevidenve)
   } catch (error) {
@@ -100,14 +109,3 @@ evidenveRouter.put('/:id',(req,res,next) => {
 })
 module.exports = evidenveRouter
 
-const updateSubindicator = async(evidence) => {
-  const subindicatorID =String(evidence.subIndicatorID)
-  const subindcator = await Subindicator.findById(subindicatorID)
-  //console.log(subindcator)
-  //const arrayEvidences = subindcator.evidences
-  //arrayEvidences.push(evidence)
-  subindcator.evidences = subindcator.evidences.concat(evidence)
-  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
-  //console.log(subindicatorUpdate)
-  return subindicatorUpdate
-}
