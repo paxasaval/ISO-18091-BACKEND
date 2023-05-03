@@ -18,7 +18,7 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
   }else{
     const period = req.query.period
     const quadrant = Number(req.query.quadrant)
-    //const quadrant = Number(req.query.quadrant)
+    //console.log(quadrant)
     IndicatorInstance.find({ period:period })
       .populate({
         path:'indicatorID',
@@ -30,12 +30,7 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
         populate: { path:'createdBy' }
       })
       .then(indicators => {
-        const orderIndicators = indicators.sort((indicatorsA,indicatorsB) => indicatorsA.indicatorID.number - indicatorsB.indicatorID.number)
-        const filteredIndicators = orderIndicators.filter(indicator => {
-          console.log(indicator.indicatorID.quadrant)
-          return indicator.indicatorID.quadrant === quadrant
-        })
-        res.json(filteredIndicators)
+        res.json(indicators.filter(indicator => indicator.indicatorID.quadrant === quadrant).sort((a,b) => a.indicatorID.number - b.indicatorID.number ))
       })
       .catch(error => next(error))
   }
@@ -51,7 +46,10 @@ indicatorInstanceRouter.get('/:id',(req,res,next) => {
     .populate({
       path:'subindicators',
       model:'SubIndicator',
-      populate: { path:'createdBy' }
+      populate: [
+        { path:'createdBy' },
+        { path:'evidences' }
+      ]
     })
     .then(indicator => {
       if(indicator){
