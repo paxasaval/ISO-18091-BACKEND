@@ -5,7 +5,7 @@ const Subindicator = require('../models/subindicator')
 const jwt = require('jsonwebtoken')
 const { getTokenFrom } = require('../utils/middleware')
 const Rol = require('../models/rol')
-
+const IndicatorInstance = require('../models/indicatorInstance')
 //const ROL_ADMIN = process.env.ROL_ADMIN
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
@@ -103,11 +103,94 @@ module.exports = evidenveRouter
 const updateSubindicator = async(evidence) => {
   const subindicatorID =String(evidence.subIndicatorID)
   const subindcator = await Subindicator.findById(subindicatorID)
+    .populate({
+      path:'evidences'
+    })
+    .populate({
+      path:'typeID',
+      populate:{
+        path:'characteristics'
+      }
+    })
+  const arrayCharacteristics = subindcator.typeID.characteristics
+  const arrayEvidences = subindcator.evidences
+  //console.log('a1',arrayCharacteristics)
+  //console.log('a2',arrayEvidences)
+  //red
+  let existEvidence = []
+  //yellow
+  let existEvidenceCritic = []
+  //green
+  arrayCharacteristics.forEach(characteristic => {
+    const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
+    //comprobar si existe evidencia para c/u caracteristica
+    if(founded.length>0){
+      existEvidence.push(true)
+    }else{
+      existEvidence.push(false)
+    }
+    //comprobar si falta evidencia para una caracteristica critica
+    if(characteristic.tier>1 && founded.length===0 ){
+      existEvidenceCritic.push(false)
+    }else{
+      //si la caracteristica no es critica o no hay evidencia
+      existEvidenceCritic.push(true)
+    }
+  })
+  //Si existen todas las evidencias = verde
+  if(!existEvidence.includes(false)){
+    subindcator.qualification=3
+  //Si falta una evidencia critica = yellow
+  }else if(existEvidenceCritic.includes(false)){
+    subindcator.qualification=2
+  }else if(existEvidence.includes(true)){
+    subindcator.qualification=1
+  }else{
+    subindcator.qualification=0
+  }
   //console.log(subindcator)
   //const arrayEvidences = subindcator.evidences
   //arrayEvidences.push(evidence)
   subindcator.evidences = subindcator.evidences.concat(evidence)
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
   //console.log(subindicatorUpdate)
-  return subindicatorUpdate
+  const indicatorUpdated = await updateIndicator(subindicatorUpdate)
+  return indicatorUpdated
+}
+const updateIndicator = async(subindicator) => {
+  const indicadorID = String(subindicator.indicadorID)
+  const indicator = await IndicatorInstance.findById(indicadorID)
+    .populate({
+      path:'subindicators'
+    })
+  const arraySubindicators = indicator.subindicators
+  const aux1=[]
+  const aux2=[]
+  const aux3=[]
+  arraySubindicators.forEach(subindicator => {
+    if(subindicator.qualification===1){
+      aux1.push(true)
+    }
+    if(subindicator.qualification===2){
+      aux2.push(true)
+    }
+    if(subindicator.qualification===3){
+      aux3.push(true)
+    }
+  })
+  const number_evaluated = aux1.length+aux2.length+aux3.length
+  if(aux1.includes(true)){
+    indicator.qualification=1
+  }else if(aux2.includes(true) && number_evaluated>arraySubindicators.length/2){
+    indicator.qualification=2
+  }else if(aux3.length===arraySubindicators.length){
+    indicator.qualification=3
+  }else if(number_evaluated>0){
+    indicator.qualification=1
+    //console.log('check')
+  }else{
+    indicator.qualification=0
+  }
+  const indicatorUpdated = IndicatorInstance.findByIdAndUpdate(indicadorID,indicator,{ new:true })
+  return indicatorUpdated
 }

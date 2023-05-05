@@ -6,6 +6,18 @@ const subIndicadorSchema = new mongoose.Schema({
     ref:'IndicatorInstance',
     required:true
   },
+  requireCover:{
+    type:Boolean,
+    required:true
+  },
+  cover:{
+    type:String,
+    required:false
+  },
+  observationCover:{
+    type:String,
+    required:false
+  },
   typeID:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Type',
@@ -30,6 +42,10 @@ const subIndicadorSchema = new mongoose.Schema({
   },
   lastUpdate:{
     type:Date,
+    required:true
+  },
+  state:{
+    type:Boolean,
     required:true
   },
   createdBy:{
