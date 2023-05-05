@@ -1,7 +1,7 @@
 const subIndicatorRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const SubIndicator = require('../models/subindicator')
-
+const IndicatorInstance = require('../models/indicatorInstance')
 subIndicatorRouter.get('/',(req,res,next) => {
   SubIndicator.find({})
     .populate({ path:'commits',model:'Commit' })
@@ -45,29 +45,75 @@ subIndicatorRouter.delete('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
-subIndicatorRouter.post('/',(req,res,next) => {
-  const body = req.body
-  if(body.name===undefined){
-    res.status(400).json({ error:'name missing' })
+subIndicatorRouter.post('/',async(req,res,next) => {
+  try {
+    const body = req.body
+    if(body.name===undefined){
+      res.status(400).json({ error:'name missing' })
+    }
+    const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
+    const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
+    const subIndicator = new SubIndicator({
+      indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
+      typeID: new mongoose.Types.ObjectId(body.typeID),
+      name:body.name,
+      responsible:body.responsible,
+      qualification:body.qualification,
+      created: new Date(),
+      lastUpdate: new Date(),
+      state:true,
+      createdBy: new mongoose.Types.ObjectId(body.createdBy),
+      commits:arrayCommits,
+      evidences:arrayEvidences
+    })
+    const savedSubIndicator = await subIndicator.save()
+    const savedAndFormattedSubIndicator = savedSubIndicator.toJSON()
+    const indicator = await IndicatorInstance.findById(subIndicator.indicadorID)
+    const indicatorID = indicator.id
+    indicator.subindicators = indicator.subindicators.concat(savedSubIndicator.id)
+    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(indicatorID,indicator,{ new:true })
+    console.log('asdsdas',indicatorUpdated)
+    res.json(savedAndFormattedSubIndicator)
+  } catch (error) {
+    next(error)
   }
-  const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
-  const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
-  const subIndicator = new SubIndicator({
-    indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
-    typeID: new mongoose.Types.ObjectId(body.typeID),
-    name:body.name,
-    responsible:body.responsible,
-    qualification:body.qualification,
-    created: new Date(),
-    lastUpdate: new Date(),
-    createdBy: new mongoose.Types.ObjectId(body.createdBy),
-    commits:arrayCommits,
-    evidences:arrayEvidences
-  })
-  subIndicator.save()
-    .then(savedSubIndicator => savedSubIndicator.toJSON())
-    .then(savedAndFormattedSubIndicator => res.json(savedAndFormattedSubIndicator))
-    .catch(error => next(error))
+})
+subIndicatorRouter.post('/newSubindicator',async(req,res,next) => {
+  try {
+    const body = req.body
+    if(body.name===undefined){
+      res.status(400).json({ error:'name missing' })
+    }
+    const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
+    const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
+    const subIndicator = new SubIndicator({
+      indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
+      requireCover:body.requireCover || true,
+      cover:body.cover,
+      observationCover:body.observationCover,
+      typeID: new mongoose.Types.ObjectId(body.typeID),
+      name:body.name,
+      responsible:body.responsible,
+      qualification:body.qualification,
+      created: new Date(),
+      lastUpdate: new Date(),
+      state:true,
+      createdBy: new mongoose.Types.ObjectId(body.createdBy),
+      commits:arrayCommits,
+      evidences:arrayEvidences
+    })
+    const savedSubIndicator = await subIndicator.save()
+    const savedAndFormattedSubIndicator = savedSubIndicator.toJSON()
+    const indicator = await IndicatorInstance.findById(subIndicator.indicadorID)
+    const indicatorID = indicator.id
+    indicator.subindicators = indicator.subindicators.concat(savedSubIndicator.id)
+    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(indicatorID,indicator,{ new:true })
+    console.log('fgg',indicatorUpdated)
+    res.json(savedAndFormattedSubIndicator)
+  } catch (error) {
+    next(error)
+  }
+
 })
 subIndicatorRouter.put('/:id',(req,res,next) => {
   const body = req.body

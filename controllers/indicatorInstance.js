@@ -91,11 +91,13 @@ indicatorInstanceRouter.post('/newPeriod',async(req,res,next) => {
       types.forEach(type => {
         const subindicator = new Subindicator({
           typeID: new mongoose.Types.ObjectId(type.id),
+          requireCover:false,
           indicadorID:instance._id,
           name:type.name,
           responsible:'Administracion',
           qualification:0,
           created: new Date(),
+          state:false,
           lastUpdate:new Date(),
           createdBy:body.createdBy,
           commits:[],
