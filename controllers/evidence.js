@@ -133,22 +133,34 @@ const updateSubindicator = async(evidence) => {
       existEvidence.push(false)
     }
     //comprobar si falta evidencia para una caracteristica critica
-    if(characteristic.tier>1 && founded.length===0 ){
+    if((characteristic.tier>1 && founded.length===0) ){
       existEvidenceCritic.push(false)
     }else{
       //si la caracteristica no es critica o no hay evidencia
       existEvidenceCritic.push(true)
     }
   })
+  const count = existEvidence.reduce((acc,curr) => {
+    if(curr){
+      acc.trueCount++
+    }else{
+      acc.falseCount++
+    }
+    return acc
+  },{ trueCount:0,falseCount:0 })
+  const total = arrayCharacteristics.length
+  const percent = count.trueCount/total
+
   //Si existen todas las evidencias = verde
   if(!existEvidence.includes(false)){
     subindcator.qualification=3
-  //Si falta una evidencia critica = yellow
-  }else if(existEvidenceCritic.includes(false)){
+  //Si hay mas del 50% de evidencias = yellow
+  }else if(count.trueCount>count.falseCount){
     subindcator.qualification=2
-  }else if(existEvidence.includes(true)){
+    //Si falta una evidencia critica || hay mas del 10% de evidencias pero menos del 50% = rojo
+  }else if(existEvidenceCritic.includes(false)|| (percent>0.1 && percent<=0.5)){
     subindcator.qualification=1
-  }else{
+  }else {
     subindcator.qualification=0
   }
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
