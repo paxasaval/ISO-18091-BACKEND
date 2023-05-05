@@ -113,7 +113,6 @@ const updateSubindicator = async(evidence) => {
       }
     })
   const arrayCharacteristics = subindcator.typeID.characteristics
-  const arrayEvidences = subindcator.evidences
   //console.log('a1',arrayCharacteristics)
   //console.log('a2',arrayEvidences)
   //red
@@ -121,6 +120,11 @@ const updateSubindicator = async(evidence) => {
   //yellow
   let existEvidenceCritic = []
   //green
+  //console.log(subindcator)
+  //const arrayEvidences = subindcator.evidences
+  //arrayEvidences.push(evidence)
+  subindcator.evidences = subindcator.evidences.concat(evidence)
+  const arrayEvidences = subindcator.evidences
   arrayCharacteristics.forEach(characteristic => {
     const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
     //comprobar si existe evidencia para c/u caracteristica
@@ -148,12 +152,8 @@ const updateSubindicator = async(evidence) => {
   }else{
     subindcator.qualification=0
   }
-  //console.log(subindcator)
-  //const arrayEvidences = subindcator.evidences
-  //arrayEvidences.push(evidence)
-  subindcator.evidences = subindcator.evidences.concat(evidence)
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
-  //console.log(subindicatorUpdate)
+  console.log('2',subindicatorUpdate)
   const indicatorUpdated = await updateIndicator(subindicatorUpdate)
   return indicatorUpdated
 }
@@ -179,14 +179,18 @@ const updateIndicator = async(subindicator) => {
     }
   })
   const number_evaluated = aux1.length+aux2.length+aux3.length
-  if(aux1.includes(true)){
+  if(aux1.includes(false)){
     indicator.qualification=1
+    console.log('3')
   }else if(aux2.includes(true) && number_evaluated>arraySubindicators.length/2){
     indicator.qualification=2
+    console.log('2')
   }else if(aux3.length===arraySubindicators.length){
     indicator.qualification=3
+    console.log('3')
   }else if(number_evaluated>0){
     indicator.qualification=1
+    console.log('1')
     //console.log('check')
   }else{
     indicator.qualification=0
