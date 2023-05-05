@@ -10,16 +10,6 @@ const IndicatorInstance = require('../models/indicatorInstance')
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
 
-const updateSubindicator = async(evidence) => {
-  const subindicatorID =String(evidence.subIndicatorID)
-  const subindcator = await Subindicator.findById(subindicatorID)
-
-  subindcator.evidences = subindcator.evidences.concat(evidence)
-  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
-
-  return subindicatorUpdate
-}
-
 evidenveRouter.get('/',(req,res,next) => {
   Evidenve.find({})
     .then(evidenves => {
