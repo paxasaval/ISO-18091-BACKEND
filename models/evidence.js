@@ -1,6 +1,4 @@
 const mongoose = require('mongoose')
-
-
 const evidenceSchema = new mongoose.Schema({
   characteristicID:{
     type:mongoose.Schema.Types.ObjectId,
@@ -36,5 +34,4 @@ evidenceSchema.set('toJSON',{
     delete returnObj.__v
   }
 })
-
 module.exports = mongoose.model('Evidence',evidenceSchema)

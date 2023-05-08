@@ -6,16 +6,11 @@ const IndicatorInstance = require('../models/indicatorInstance')
 const { getTokenFrom } = require('../utils/middleware')
 const Rol = require('../models/rol')
 const ROL_USER = process.env.ROL_USER
-
-
-
 const getPagination = (page, size) => {
   const limit = size ? +size : 3
   const offset = page ? page * limit : 0
-
   return { limit, offset }
 }
-
 subIndicatorRouter.get('/all',(req,res,next) => {
   SubIndicator.find({})
     .populate({ path:'commits',model:'Commit' })
@@ -33,7 +28,6 @@ subIndicatorRouter.get('/all',(req,res,next) => {
 subIndicatorRouter.get('/',(req,res,next) => {
   const { page, size } = req.query
   const { limit, offset } = getPagination(page, size)
-
   SubIndicator.paginate({},{
     offset,
     limit,
@@ -53,7 +47,6 @@ subIndicatorRouter.get('/',(req,res,next) => {
     })
     .catch(error => next(error))
 })
-
 subIndicatorRouter.get('/indicator/:id',async(req,res,next) => {
   try {
     const id = req.params.id
