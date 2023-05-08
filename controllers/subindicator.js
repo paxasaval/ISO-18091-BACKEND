@@ -8,6 +8,7 @@ const Rol = require('../models/rol')
 const ROL_USER = process.env.ROL_USER
 
 
+
 const getPagination = (page, size) => {
   const limit = size ? +size : 3
   const offset = page ? page * limit : 0
