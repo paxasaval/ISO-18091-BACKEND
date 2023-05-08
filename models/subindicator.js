@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const mongoosePaginate = require('mongoose-paginate-v2')
 
 const subIndicadorSchema = new mongoose.Schema({
   indicadorID:{
@@ -63,6 +64,9 @@ const subIndicadorSchema = new mongoose.Schema({
   }]
 
 })
+
+subIndicadorSchema.plugin(mongoosePaginate)
+
 subIndicadorSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()

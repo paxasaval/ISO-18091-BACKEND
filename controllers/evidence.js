@@ -112,20 +112,16 @@ const updateSubindicator = async(evidence) => {
       }
     })
   const arrayCharacteristics = subindcator.typeID.characteristics
-  //console.log('a1',arrayCharacteristics)
-  //console.log('a2',arrayEvidences)
+
   //red
   let existEvidence = []
   //yellow
   let existEvidenceCritic = []
-  //green
-  //console.log(subindcator)
-  //const arrayEvidences = subindcator.evidences
-  //arrayEvidences.push(evidence)
   subindcator.evidences = subindcator.evidences.concat(evidence)
   const arrayEvidences = subindcator.evidences
   arrayCharacteristics.forEach(characteristic => {
     const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
+    console.log(founded)
     //comprobar si existe evidencia para c/u caracteristica
     if(founded.length>0){
       existEvidence.push(true)
@@ -150,7 +146,7 @@ const updateSubindicator = async(evidence) => {
   },{ trueCount:0,falseCount:0 })
   const total = arrayCharacteristics.length
   const percent = count.trueCount/total
-
+  console.log(existEvidence)
   //Si existen todas las evidencias = verde
   if(!existEvidence.includes(false)){
     subindcator.qualification=3
@@ -190,7 +186,7 @@ const updateIndicator = async(subindicator) => {
     }
   })
   const number_evaluated = aux1.length+aux2.length+aux3.length
-  if(aux1.includes(false)){
+  if(aux1.includes(true)){
     indicator.qualification=1
     console.log('3')
   }else if(aux2.includes(true) && number_evaluated>arraySubindicators.length/2){
