@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+
 const evidenceSchema = new mongoose.Schema({
   characteristicID:{
     type:mongoose.Schema.Types.ObjectId,
@@ -27,6 +28,7 @@ const evidenceSchema = new mongoose.Schema({
     default:false
   }
 })
+
 evidenceSchema.set('toJSON',{
   transform:(doc,returnObj) => {
     returnObj.id = returnObj._id.toString()

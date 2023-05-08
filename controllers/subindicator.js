@@ -11,6 +11,7 @@ const getPagination = (page, size) => {
   const offset = page ? page * limit : 0
   return { limit, offset }
 }
+
 subIndicatorRouter.get('/all',(req,res,next) => {
   SubIndicator.find({})
     .populate({ path:'commits',model:'Commit' })
@@ -25,6 +26,7 @@ subIndicatorRouter.get('/all',(req,res,next) => {
     })
     .catch(error => next(error))
 })
+
 subIndicatorRouter.get('/',(req,res,next) => {
   const { page, size } = req.query
   const { limit, offset } = getPagination(page, size)
@@ -47,6 +49,7 @@ subIndicatorRouter.get('/',(req,res,next) => {
     })
     .catch(error => next(error))
 })
+
 subIndicatorRouter.get('/indicator/:id',async(req,res,next) => {
   try {
     const id = req.params.id
