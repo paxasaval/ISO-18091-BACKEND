@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const IndicatorInstance = require('../models/indicatorInstance')
 const { getTokenFrom } = require('../utils/middleware')
 const Rol = require('../models/rol')
+
 const ROL_USER = process.env.ROL_USER
 
 
@@ -63,9 +64,6 @@ subIndicatorRouter.get('/indicator/:id',async(req,res,next) => {
       offset,
       limit,
       populate:[
-        {
-          path:'evidences',model:'Evidence'
-        },
         { path:'evidences',model:'Evidence' },
         {
           path:'typeID',
@@ -202,7 +200,24 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
     next(error)
   }
 })
-
+subIndicatorRouter.get('/indicator/:indicatorID/type/:typeID',async(req,res,next) => {
+  try {
+    const  indicatorID = new mongoose.Types.ObjectId(req.params.indicatorID)
+    const  typeID = new mongoose.Types.ObjectId(req.params.typeID)
+    const subindicator = await SubIndicator.findOne({ indicadorID:indicatorID,typeID:typeID })
+      .populate('typeID')
+      .populate({
+        path:'evidences',
+        populate:{
+          path:'characteristicID'
+        }
+      })
+      .populate('createdBy')
+    res.status(200).json(subindicator)
+  } catch (error) {
+    next(error)
+  }
+})
 
 subIndicatorRouter.get('/:id',(req,res,next) => {
   const id = req.params.id

@@ -32,9 +32,12 @@ const characteristicSchema = new mongoose.Schema({
 })
 characteristicSchema.set('toJSON',{
   transform:(doc,returnObj) => {
-    returnObj.id = returnObj._id.toString()
-    delete returnObj._id
-    delete returnObj.__v
+    if(returnObj._id){
+      returnObj.id = returnObj._id.toString()
+      delete returnObj._id
+      delete returnObj.__v
+
+    }
   }
 })
 
