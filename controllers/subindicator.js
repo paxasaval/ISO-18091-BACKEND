@@ -54,6 +54,97 @@ subIndicatorRouter.get('/',(req,res,next) => {
     .catch(error => next(error))
 })
 
+subIndicatorRouter.get('/indicator/:id/generalSubindicators',async(req,res,next) => {
+  try {
+    const id = req.params.id
+    const options = {
+      select: { __v: 0, _id: 0 },
+    }
+    const data = await SubIndicator.aggregate([
+      {
+        $match: { indicadorID: new mongoose.Types.ObjectId(id) }
+      },
+      {
+        $lookup: {
+          from: 'evidences',
+          localField: 'evidences',
+          foreignField: '_id',
+          as: 'evidences',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'types',
+          localField: 'typeID',
+          foreignField: '_id',
+          as: 'typeID',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $unwind: { path: '$typeID', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $lookup: {
+          from: 'characteristics',
+          localField: 'typeID.characteristics',
+          foreignField: '_id',
+          as: 'typeID.characteristics',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $match: { 'typeID.mandatory': true }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project:{
+          id:'$_id',
+          indicadorID:1,
+          requireCover:1,
+          cover:1,
+          observationCover:1,
+          typeID:1,
+          name:1,
+          responsible:1,
+          qualification:1,
+          created:1,
+          lastUpdate:1,
+          state:1,
+          createdBy:1,
+          commits:1,
+          evidences:1,
+          _id:0,
+        }
+      },
+    ])
+    res.json(data)
+
+  } catch (error) {
+    next(error)
+  }
+})
+
 subIndicatorRouter.get('/indicator/:id',async(req,res,next) => {
   try {
     const id = req.params.id
