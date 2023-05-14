@@ -1,5 +1,5 @@
 const indicatorInstanceRouter = require('express').Router()
-const { default: mongoose } = require('mongoose')
+const  mongoose  = require('mongoose')
 const IndicatorInstance = require('../models/indicatorInstance')
 const Indicator = require('../models/indicator')
 const Subindicator = require('../models/subindicator')
@@ -33,6 +33,29 @@ indicatorInstanceRouter.get('/',(req,res,next) => {
         res.json(indicators.filter(indicator => indicator.indicatorID.quadrant === quadrant).sort((a,b) => a.indicatorID.number - b.indicatorID.number ))
       })
       .catch(error => next(error))
+  }
+})
+
+indicatorInstanceRouter.get('/byIndicatorIDAndPeriod',async (req,res,next) => {
+  try {
+    const indicatorID = new mongoose.Types.ObjectId(req.query.indicatorID)
+    const period = req.query.period
+    const indicatorInstance = await IndicatorInstance.findOne({ indicatorID:indicatorID,period:period })
+      .populate({
+        path:'indicatorID',
+        populate: { path:'ods' }
+      })
+      .populate({
+        path:'subindicators',
+        model:'SubIndicator',
+        populate: [
+          { path:'createdBy' },
+          { path:'evidences' }
+        ]
+      })
+    res.status(200).json(indicatorInstance)
+  } catch (error) {
+    next(error)
   }
 })
 
