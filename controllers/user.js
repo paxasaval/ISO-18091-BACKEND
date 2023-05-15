@@ -7,7 +7,8 @@ const bcrypt = require('bcrypt')
 const Rol = require('../models/rol')
 
 userRouter.get('/',async (req,res) => {
-  const users = await User.find().populate('rol')
+  const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
+  const users = await User.find({ gadID:tenantID }).populate('rol')
   if(users.length>0){
     res.status(200).json(users)
   }
