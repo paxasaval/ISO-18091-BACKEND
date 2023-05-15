@@ -1,26 +1,45 @@
 const mongoose = require('mongoose')
 
 const indicadorInstanceSchema = new mongoose.Schema({
+  gadID:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref:'Gad',
+    required: true,
+  },
   indicatorID: {
     type: mongoose.Schema.Types.ObjectId,
     ref:'Indicator',
     required: true,
   },
+  period:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref:'Indicator',
+    required: true,
+  },
+  year:{
+    type:String,
+    required:true
+  },
   qualification: {
     type: Number,
     required: true,
-  },
-  period:{
-    type:String,
-    required:true
   },
   create:{
     type:Date,
     required:true,
   },
+  state:{
+    type:Boolean,
+    required:true
+  },
   lastUpdate:{
     type:Date,
-    required:true
+    required:false
+  },
+  lastUpdateBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:false
   },
   createdBy:{
     type:mongoose.Schema.Types.ObjectId,
@@ -30,7 +49,6 @@ const indicadorInstanceSchema = new mongoose.Schema({
     type:mongoose.Schema.Types.ObjectId,
     ref:'SubIndicator'
   }]
-
 })
 indicadorInstanceSchema.set('toJSON', {
   transform: (doc, returnObj) => {

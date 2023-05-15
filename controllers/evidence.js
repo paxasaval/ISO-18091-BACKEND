@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const { getTokenFrom } = require('../utils/middleware')
 const Rol = require('../models/rol')
 const IndicatorInstance = require('../models/indicatorInstance')
+const  mongoose  = require('mongoose')
 //const ROL_ADMIN = process.env.ROL_ADMIN
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
@@ -49,30 +50,34 @@ evidenveRouter.post('/',async (req,res,next) => {
       return res.status(401).json({ error: 'token missing or invalid' })
     }else{
       const rolID = decodedToken.rol
+      const user = decodedToken.id
       const rol = await Rol.findById(rolID)
       if(!rol){
         return res.status(401).json({ error: 'rol missing or invalid' })
       }else if(rol.name===ROL_USER){
         return res.status(401).json({ error: 'unauthorized rol' })
       }
+      //end-authorization
+      if(body.name===undefined){
+        res.status(400).json({ error:'name missing' })
+      }
+      const evidenve = new Evidenve({
+        characteristicID:body.characteristicID,
+        subIndicatorID:body.subIndicatorID,
+        name:body.name,
+        link:body.link,
+        note:body.note,
+        verified:body.verified || false,
+        qualification:body.qualification||0,
+        author: new mongoose.Types.ObjectId(user),
+        commits:[]
+      })
+      const savedEvidence = await evidenve.save()
+      const updatedSubindicator = await updateSubindicator(savedEvidence)
+      console.log(updatedSubindicator)
+      const savedAndFormattedevidenve = savedEvidence.toJSON()
+      res.json(savedAndFormattedevidenve)
     }
-    //end-authorization
-    if(body.name===undefined){
-      res.status(400).json({ error:'name missing' })
-    }
-    const evidenve = new Evidenve({
-      name:body.name,
-      characteristicID:body.characteristicID,
-      subIndicatorID:body.subIndicatorID,
-      link:body.link,
-      verified:body.verified || false,
-      note:body.note,
-    })
-    const savedEvidence = await evidenve.save()
-    const updatedSubindicator = await updateSubindicator(savedEvidence)
-    console.log(updatedSubindicator)
-    const savedAndFormattedevidenve = savedEvidence.toJSON()
-    res.json(savedAndFormattedevidenve)
   } catch (error) {
     next(error)
   }
@@ -90,6 +95,7 @@ evidenveRouter.put('/:id',(req,res,next) => {
     link:body.link,
     verified:body.verified || false,
     note:body.note,
+    commits:[]
   }
   Evidenve.findByIdAndUpdate(id,evidenve,{ new:true })
     .then(updateEvidenve => {
@@ -159,6 +165,8 @@ const updateSubindicator = async(evidence) => {
   }else {
     subindcator.qualification=0
   }
+  subindcator.lastUpdate = new Date()
+  subindcator.lastUpdateBy = evidence.author
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
   console.log('2',subindicatorUpdate)
   const indicatorUpdated = await updateIndicator(subindicatorUpdate)
@@ -202,6 +210,10 @@ const updateIndicator = async(subindicator) => {
   }else{
     indicator.qualification=0
   }
+
+  indicator.lastUpdate = new Date()
+  indicator.lastUpdateBy = subindicator.last
+
   const indicatorUpdated = IndicatorInstance.findByIdAndUpdate(indicadorID,indicator,{ new:true })
   return indicatorUpdated
 }
