@@ -37,16 +37,21 @@ const subIndicadorSchema = new mongoose.Schema({
     default:0,
     required:false
   },
-  created:{
-    type:Date,
-    required:true
-  },
   lastUpdate:{
     type:Date,
-    required:true
+    required:false
+  },
+  lastUpdateBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:false
   },
   state:{
     type:Boolean,
+    required:true
+  },
+  created:{
+    type:Date,
     required:true
   },
   createdBy:{

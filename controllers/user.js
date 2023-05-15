@@ -14,6 +14,7 @@ userRouter.get('/',async (req,res) => {
 })
 
 userRouter.post('/',(req,res,next) => {
+  const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
   const body = req.body
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
@@ -25,7 +26,8 @@ userRouter.post('/',(req,res,next) => {
     rol: new mongoose.Types.ObjectId(body.rol),
     created:new Date(),
     lastUpdate: new Date(),
-    state:true
+    state:true,
+    gadID:tenantID
   })
   user.save()
     .then(savedOds => savedOds.toJSON())
@@ -38,9 +40,12 @@ userRouter.post('/signUp', async (req,res,next) => {
     const body = req.body
     const saltRounds = 10
     const passwordHash = await bcrypt.hash(body.password,saltRounds)
-
+    const tenantID = req.header('tenant')
+    if(tenantID===undefined){
+      console.log(tenantID)
+      res.status(400).json({ error:'Need tenantID by workspace' })
+    }
     const rol = await Rol.findById(body.rol)
-    console.log(rol,'sds')
     const user = new User({
       name: body.name,
       mail: body.mail,
@@ -48,11 +53,10 @@ userRouter.post('/signUp', async (req,res,next) => {
       rol: rol._id,
       created:new Date(),
       lastUpdate: new Date(),
-      state:true
+      state:true,
+      gadID:tenantID
     })
-
     const savedUser = await user.save()
-
     res.json(savedUser)
   } catch (error) {
     console.log(error)

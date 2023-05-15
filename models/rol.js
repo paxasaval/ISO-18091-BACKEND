@@ -1,7 +1,13 @@
 const mongoose = require('mongoose')
 const rolShema = new mongoose.Schema({
-  name:String,
-  description:String
+  name:{
+    type:String,
+    required:true
+  },
+  description:{
+    type:String,
+    required:true
+  }
 })
 rolShema.set('toJSON',{
   transform:(doc,returnObj) => {

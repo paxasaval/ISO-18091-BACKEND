@@ -9,7 +9,7 @@ const evidenceSchema = new mongoose.Schema({
   subIndicatorID:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Subindicator',
-    required:false
+    required:true
   },
   name:{
     type:String,
@@ -26,7 +26,21 @@ const evidenceSchema = new mongoose.Schema({
   verified:{
     type:Boolean,
     default:false
-  }
+  },
+  qualification:{
+    type:Number,
+    required:false
+  },
+  author:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:true
+  },
+  commits:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Commit',
+    required:false
+  }],
 })
 evidenceSchema.set('toJSON',{
   transform:(doc,returnObj) => {

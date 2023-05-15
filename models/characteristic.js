@@ -13,6 +13,10 @@ const characteristicSchema = new mongoose.Schema({
     type:String,
     required:true
   },
+  help:{
+    type:String,
+    required:false
+  },
   isRequired:{
     type:Boolean,
     required:true
@@ -21,6 +25,10 @@ const characteristicSchema = new mongoose.Schema({
     type:Boolean,
     required:true
   },
+  score:{
+    type:Number,
+    required:false
+  },
   tier:{
     type:Number,
     required:true
@@ -28,7 +36,11 @@ const characteristicSchema = new mongoose.Schema({
   unique:{
     type:Boolean,
     required:true
-  }
+  },
+  allowed_formats:[{
+    type:String,
+    required:true
+  }]
 })
 characteristicSchema.set('toJSON',{
   transform:(doc,returnObj) => {

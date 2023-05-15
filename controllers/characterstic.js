@@ -31,6 +31,7 @@ characteristicRouter.post('/',(req,res,next) => {
     name: body.name,
     group: body.group,
     groupName: body.groupName,
+    score: body.score || 0,
     isRequired: body.isRequired || true,
     required: body.required || true,
     tier: body.tier,
@@ -72,6 +73,7 @@ characteristicRouter.put('/:id',(req,res,next) => {
     group: body.group,
     groupName: body.groupName,
     required: body.required,
+    score: body.score || 0,
     tier: body.tier,
     isRequired: body.isRequired,
     unique: body.unique
