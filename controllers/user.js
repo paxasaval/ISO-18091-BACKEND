@@ -7,11 +7,21 @@ const bcrypt = require('bcrypt')
 const Rol = require('../models/rol')
 
 userRouter.get('/',async (req,res) => {
-  const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
-  const users = await User.find({ gadID:tenantID }).populate('rol')
-  if(users.length>0){
-    res.status(200).json(users)
+  if(req.header('tenant')){
+    const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
+    const users = await User.find({ gadID:tenantID }).populate('rol')
+
+    if(users.length>0){
+      res.status(200).json(users)
+    }else{
+      res.status(200).json({ message:'no users in worskpace' })
+    }
+
+  }else{
+    res.status(400).json({ message:'tenant is nessesary' })
+
   }
+
 })
 
 userRouter.post('/',(req,res,next) => {
