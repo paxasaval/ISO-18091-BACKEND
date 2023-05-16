@@ -176,6 +176,11 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
     const options = {
       select: { __v: 0, _id: 0 },
     }
+
+    //const subIndicators = await SubIndicator.find({indicadorID: new mongoose.Types.ObjectId(id)})
+  
+    //console.log(subIndicators)
+
     const data = await SubIndicator.aggregate([
       {
         $match: { indicadorID: new mongoose.Types.ObjectId(id) }
@@ -253,10 +258,11 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
           _id:0,
         }
       },
-
+      {
+        $match: { $expr: { $gt: [ '$if', 0 ] } }
+      },
       {
         $facet: {
-          totalCount: [{ $count: 'count' }],
           results: [
             {
               $skip: offset
@@ -266,6 +272,9 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
         }
       }
     ])
+    if(data[0].results.length===0){
+      return res.status(204).json({message:'no subindcators specific'})
+    }
     const totalCount = data[0].totalCount[0].count
     const subindicators = data[0].results
     const JSONsubindicators= JSON.parse(JSON.stringify(subindicators, { virtuals: true }))
