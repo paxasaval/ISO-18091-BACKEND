@@ -176,6 +176,11 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
     const options = {
       select: { __v: 0, _id: 0 },
     }
+
+    //const subIndicators = await SubIndicator.find({indicadorID: new mongoose.Types.ObjectId(id)})
+
+    //console.log(subIndicators)
+
     const data = await SubIndicator.aggregate([
       {
         $match: { indicadorID: new mongoose.Types.ObjectId(id) }
@@ -253,7 +258,6 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
           _id:0,
         }
       },
-
       {
         $facet: {
           totalCount: [{ $count: 'count' }],
@@ -266,6 +270,11 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
         }
       }
     ])
+    console.log(data)
+
+    if(data[0].results.length===0){
+      return res.status(204).json({ message:'no subindcators specific' })
+    }
     const totalCount = data[0].totalCount[0].count
     const subindicators = data[0].results
     const JSONsubindicators= JSON.parse(JSON.stringify(subindicators, { virtuals: true }))
@@ -282,7 +291,7 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next
       existPrevpage: hasPrevPage,
       totalDocs:totalCount,
     }
-    res.json({
+    return res.json({
       pagination,
       docs:JSONsubindicators
     })
@@ -396,6 +405,7 @@ subIndicatorRouter.post('/newSubindicator',async(req,res,next) => {
     if(body.name===undefined){
       res.status(400).json({ error:'name missing' })
     }
+    const user = new mongoose.Types.ObjectId(decodedToken.id)
     const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
     const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
     const subIndicator = new SubIndicator({
@@ -410,7 +420,7 @@ subIndicatorRouter.post('/newSubindicator',async(req,res,next) => {
       created: new Date(),
       lastUpdate: new Date(),
       state:true,
-      createdBy: new mongoose.Types.ObjectId(body.createdBy),
+      createdBy: user,
       commits:arrayCommits,
       evidences:arrayEvidences
     })
