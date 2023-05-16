@@ -59,7 +59,7 @@ indicatorInstanceRouter.get('/byIndicatorIDAndPeriod',async (req,res,next) => {
       .populate({
         path:'indicatorID',
         populate: { path:'ods' }
-      })  
+      })
       .populate({
         path:'subindicators',
         model:'SubIndicator',

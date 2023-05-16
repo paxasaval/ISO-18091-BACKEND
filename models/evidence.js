@@ -8,7 +8,7 @@ const evidenceSchema = new mongoose.Schema({
   },
   subIndicatorID:{
     type:mongoose.Schema.Types.ObjectId,
-    ref:'Subindicator',
+    ref:'SubIndicator',
     required:true
   },
   name:{

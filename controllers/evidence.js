@@ -19,17 +19,23 @@ evidenveRouter.get('/',(req,res,next) => {
     .catch(error => next(error))
 })
 
-evidenveRouter.get('/:id',(req,res,next) => {
-  const id = req.params.id
-  Evidenve.findById(id)
-    .then(evidenve => {
-      if(evidenve){
-        res.json(evidenve)
-      }else{
-        res.status(404).end()
-      }
-    })
-    .catch(error => next(error))
+evidenveRouter.get('/:id',async(req,res,next) => {
+  try {
+    const id = req.params.id
+    const evidence = await Evidenve.findById(id)
+      .populate('author')
+      .populate('characteristicID')
+      .populate('subIndicatorID')
+      .populate('commits')
+    if(evidence){
+      return res.status(200).json(evidence)
+    }else{
+      return res.status(404).end()
+    }
+  } catch (error) {
+    next(error)
+  }
+
 })
 
 evidenveRouter.delete('/:id',(req,res,next) => {
