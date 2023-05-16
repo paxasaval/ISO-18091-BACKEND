@@ -23,12 +23,29 @@ const evidenceSchema = new mongoose.Schema({
     type:String,
     required:false
   },
+  state:{
+    type:Boolean,
+    required:false
+  },
   verified:{
     type:Boolean,
     default:false
   },
   qualification:{
     type:Number,
+    required:false
+  },
+  autoQualification:{
+    type:Number,
+    required:false
+  },
+  qualificationBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:false
+  },
+  qualificationDate:{
+    type:Date,
     required:false
   },
   author:{
