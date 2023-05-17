@@ -73,6 +73,66 @@ indicatorInstanceRouter.get('/byIndicatorIDAndPeriod',async (req,res,next) => {
     next(error)
   }
 })
+indicatorInstanceRouter.get('/byQuadrantAndPeriod',async (req,res,next) => {
+  try {
+    const quadrant = Number(req.query.quadrant)
+    const period = new mongoose.Types.ObjectId(req.query.period)
+    const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
+    const options = {
+      select: { __v: 0, _id: 0 },
+    }
+    console.log(quadrant,period)
+    const indicatorInstance = await IndicatorInstance.aggregate([
+      {
+        $match:{ period:period,gadID:tenantID }
+      },
+      {
+        $lookup:{
+          from:'indicators',
+          localField:'indicatorID',
+          foreignField:'_id',
+          as:'indicatorID',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $unwind: { path: '$indicatorID', preserveNullAndEmptyArrays: true }
+      },
+      {
+
+        $lookup:{
+          from:'ods',
+          localField:'indicatorID.ods',
+          foreignField:'_id',
+          as:'indicatorID.ods',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $lookup:{
+          from:'gad',
+          localField:'gadID',
+          foreignField:'_id',
+          as:'gadID',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
+      {
+        $match: { 'indicatorID.quadrant': quadrant }
+      },
+    ])
+    console.log(indicatorInstance)
+    res.status(200).json(indicatorInstance)
+  } catch (error) {
+    next(error)
+  }
+})
 
 indicatorInstanceRouter.get('/:id',(req,res,next) => {
   const id = req.params.id

@@ -75,6 +75,7 @@ evidenveRouter.post('/',async (req,res,next) => {
         name:body.name,
         link:body.link,
         note:body.note,
+        state:true,
         verified:body.verified || false,
         qualification:body.qualification||0,
         author: new mongoose.Types.ObjectId(user),
@@ -235,48 +236,75 @@ const updateSubindicator = async(evidence) => {
   const indicatorUpdated = await updateIndicator(subindicatorUpdate)
   return indicatorUpdated
 }
-const updateIndicator = async(subindicator) => {
+const updateIndicator = async (subindicator) => {
+  // Convertir el indicadorID a una cadena
   const indicadorID = String(subindicator.indicadorID)
-  const indicator = await IndicatorInstance.findById(indicadorID)
-    .populate({
-      path:'subindicators'
-    })
+
+  // Buscar el indicador por su ID y poblar los subindicadores
+  const indicator = await IndicatorInstance.findById(indicadorID).populate({
+    path: 'subindicators',
+  })
+
   const arraySubindicators = indicator.subindicators
-  const aux1=[]
-  const aux2=[]
-  const aux3=[]
-  arraySubindicators.forEach(subindicator => {
-    if(subindicator.qualification===1){
-      aux1.push(true)
-    }
-    if(subindicator.qualification===2){
-      aux2.push(true)
-    }
-    if(subindicator.qualification===3){
-      aux3.push(true)
+
+  // Variables auxiliares para contar los subindicadores por calificación
+  let count1 = 0
+  let count2 = 0
+  let count3 = 0
+
+  // Iterar sobre los subindicadores y contar las calificaciones
+  arraySubindicators.forEach((subindicator) => {
+    if (subindicator.qualification === 1) {
+      count1++
+    } else if (subindicator.qualification === 2) {
+      count2++
+    } else if (subindicator.qualification === 3) {
+      count3++
     }
   })
-  const number_evaluated = aux1.length+aux2.length+aux3.length
-  if(aux1.includes(true)){
-    indicator.qualification=1
-    console.log('3')
-  }else if(aux2.includes(true) && number_evaluated>arraySubindicators.length/2){
-    indicator.qualification=2
+
+  // Calcular el número total de subindicadores evaluados
+  const numberEvaluated = count1 + count2 + count3
+  let qualification=0
+  // Actualizar la calificación del indicador según las condiciones
+  if (count1 > 0) {
+    indicator.qualification = 1
+    qualification=1
+    console.log('1')
+  } else if (count2 > 0 && numberEvaluated > arraySubindicators.length / 2) {
+    indicator.qualification = 2
+    qualification=2
+
     console.log('2')
-  }else if(aux3.length===arraySubindicators.length){
-    indicator.qualification=3
+  } else if (count3 === arraySubindicators.length) {
+    indicator.qualification = 3
+    qualification=3
     console.log('3')
-  }else if(number_evaluated>0){
-    indicator.qualification=1
+  }else if (count3>arraySubindicators.length/2){
+    indicator.qualification = 2
+    qualification=2
+    console.log('2')
+  } else if (numberEvaluated > 0) {
+    indicator.qualification = 1
+    qualification=1
     console.log('1')
     //console.log('check')
-  }else{
-    indicator.qualification=0
+  } else {
+    indicator.qualification = 0
+    qualification=0
   }
 
+  // Actualizar la fecha y el responsable de la última actualización
   indicator.lastUpdate = new Date()
   indicator.lastUpdateBy = subindicator.last
 
-  const indicatorUpdated = IndicatorInstance.findByIdAndUpdate(indicadorID,indicator,{ new:true })
+  // Actualizar y retornar el indicador actualizado
+  const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(
+    indicadorID,
+    { ...indicator,autoQualification:qualification },
+    { new: true }
+  )
+
   return indicatorUpdated
 }
+
