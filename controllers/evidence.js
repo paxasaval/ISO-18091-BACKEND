@@ -75,13 +75,14 @@ evidenveRouter.post('/',async (req,res,next) => {
         name:body.name,
         link:body.link,
         note:body.note,
+        state:true,
         verified:body.verified || false,
         qualification:body.qualification||0,
         author: new mongoose.Types.ObjectId(user),
         commits:[]
       })
-      const savedEvidence = await evidenve.save()
-      const updatedSubindicator = await updateSubindicator(savedEvidence)
+      const savedEvidence = await evidenve.save()//tenemos lal evidencia guardada
+      const updatedSubindicator = await updateSubindicator(savedEvidence)//actualizamos el subindidicador
       console.log(updatedSubindicator)
       const savedAndFormattedevidenve = savedEvidence.toJSON()
       res.json(savedAndFormattedevidenve)
@@ -170,7 +171,7 @@ module.exports = evidenveRouter
 
 const updateSubindicator = async(evidence) => {
   const subindicatorID =String(evidence.subIndicatorID)
-  const subindcator = await Subindicator.findById(subindicatorID)
+  const subindcatorBD = await Subindicator.findById(subindicatorID)
     .populate({
       path:'evidences'
     })
@@ -180,17 +181,17 @@ const updateSubindicator = async(evidence) => {
         path:'characteristics'
       }
     })
-  const arrayCharacteristics = subindcator.typeID.characteristics
+  const arrayCharacteristics = subindcatorBD.typeID.characteristics
 
   //red
   let existEvidence = []
   //yellow
   let existEvidenceCritic = []
-  subindcator.evidences = subindcator.evidences.concat(evidence)
-  const arrayEvidences = subindcator.evidences
+  subindcatorBD.evidences = subindcatorBD.evidences.concat(evidence)
+  const arrayEvidences = subindcatorBD.evidences
   arrayCharacteristics.forEach(characteristic => {
     const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
-    console.log(founded)
+    //console.log(founded)
     //comprobar si existe evidencia para c/u caracteristica
     if(founded.length>0){
       existEvidence.push(true)
@@ -215,68 +216,100 @@ const updateSubindicator = async(evidence) => {
   },{ trueCount:0,falseCount:0 })
   const total = arrayCharacteristics.length
   const percent = count.trueCount/total
-  console.log(existEvidence)
+  //console.log(existEvidence)
   //Si existen todas las evidencias = verde
   if(!existEvidence.includes(false)){
-    subindcator.qualification=3
+    subindcatorBD.qualification=3
   //Si hay mas del 50% de evidencias = yellow
   }else if(count.trueCount>count.falseCount){
-    subindcator.qualification=2
+    subindcatorBD.qualification=2
     //Si falta una evidencia critica || hay mas del 10% de evidencias pero menos del 50% = rojo
   }else if(existEvidenceCritic.includes(false)|| (percent>0.1 && percent<=0.5)){
-    subindcator.qualification=1
+    subindcatorBD.qualification=1
   }else {
-    subindcator.qualification=0
+    subindcatorBD.qualification=0
   }
-  subindcator.lastUpdate = new Date()
-  subindcator.lastUpdateBy = evidence.author
-  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcator.id,subindcator,{ new:true })
+  subindcatorBD.lastUpdate = new Date()
+  subindcatorBD.lastUpdateBy = evidence.author//el ultimo oque registro evidencia
+  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcatorBD.id,subindcatorBD,{ new:true })//hemos actualizado y recalificado el suubindicador
   console.log('2',subindicatorUpdate)
-  const indicatorUpdated = await updateIndicator(subindicatorUpdate)
+  const indicatorUpdated = await updateIndicator(subindicatorUpdate)//ahora actualizamos el indicador
   return indicatorUpdated
 }
-const updateIndicator = async(subindicator) => {
+const updateIndicator = async (subindicator) => {
+  // Convertir el indicadorID a una cadena
   const indicadorID = String(subindicator.indicadorID)
-  const indicator = await IndicatorInstance.findById(indicadorID)
-    .populate({
-      path:'subindicators'
-    })
+
+  // Buscar el indicador por su ID y poblar los subindicadores
+  const indicator = await IndicatorInstance.findById(indicadorID).populate({
+    path: 'subindicators',
+  })
+
   const arraySubindicators = indicator.subindicators
-  const aux1=[]
-  const aux2=[]
-  const aux3=[]
-  arraySubindicators.forEach(subindicator => {
-    if(subindicator.qualification===1){
-      aux1.push(true)
-    }
-    if(subindicator.qualification===2){
-      aux2.push(true)
-    }
-    if(subindicator.qualification===3){
-      aux3.push(true)
+
+  // Variables auxiliares para contar los subindicadores por calificación
+  let count1 = 0
+  let count2 = 0
+  let count3 = 0
+
+  // Iterar sobre los subindicadores y contar las calificaciones
+  arraySubindicators.forEach((subindicator) => {
+    if (subindicator.qualification === 1) {
+      count1++
+    } else if (subindicator.qualification === 2) {
+      count2++
+    } else if (subindicator.qualification === 3) {
+      count3++
     }
   })
-  const number_evaluated = aux1.length+aux2.length+aux3.length
-  if(aux1.includes(true)){
-    indicator.qualification=1
-    console.log('3')
-  }else if(aux2.includes(true) && number_evaluated>arraySubindicators.length/2){
-    indicator.qualification=2
+
+  // Calcular el número total de subindicadores evaluados
+  const numberEvaluated = count1 + count2 + count3
+  let qualification=0
+  // Actualizar la calificación del indicador según las condiciones
+  //si tengo un rojo todo esta en rojo
+  if (count1 > 0) {
+    indicator.qualification = 1
+    qualification=1
+    console.log('1')
+  //si tengo un amarillo y numero de ealuador es mayor a la mitad de suubindicadores estas en amarillo
+  } else if (count2 > 0 && numberEvaluated > arraySubindicators.length / 2) {
+    indicator.qualification = 2
+    qualification=2
     console.log('2')
-  }else if(aux3.length===arraySubindicators.length){
-    indicator.qualification=3
+  //si tengo todas en verde esta en verde el indicador
+  } else if (count3 === arraySubindicators.length && count3>4) {
+    indicator.qualification = 3
+    qualification=3
     console.log('3')
-  }else if(number_evaluated>0){
-    indicator.qualification=1
+  //si tengo mas de la mitad en verde estas en amarillo
+  }else if (count3>arraySubindicators.length/2){
+    indicator.qualification = 2
+    qualification=2
+    console.log('2')
+  //si numero de evualos es mayor 0 estas en rojo
+  } else if (numberEvaluated > 0) {
+    indicator.qualification = 1
+    qualification=1
     console.log('1')
     //console.log('check')
-  }else{
-    indicator.qualification=0
+  //si no ningun subindicador evaluado estas en gris 
+  } else {
+    indicator.qualification = 0
+    qualification=0
   }
 
+  // Actualizar la fecha y el responsable de la última actualización
   indicator.lastUpdate = new Date()
-  indicator.lastUpdateBy = subindicator.last
+  indicator.lastUpdateBy = subindicator.lastUpdateBy
 
-  const indicatorUpdated = IndicatorInstance.findByIdAndUpdate(indicadorID,indicator,{ new:true })
+  // Actualizar y retornar el indicador actualizado
+  const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(
+    indicadorID,
+    { ...indicator,autoQualification:qualification },
+    { new: true }
+  )
+
   return indicatorUpdated
 }
+

@@ -37,6 +37,11 @@ const subIndicadorSchema = new mongoose.Schema({
     default:0,
     required:false
   },
+  autoQualification:{
+    type:Number,
+    default:0,
+    required:false
+  },
   lastUpdate:{
     type:Date,
     required:false

@@ -35,10 +35,6 @@ const evidenceSchema = new mongoose.Schema({
     type:Number,
     required:false
   },
-  autoQualification:{
-    type:Number,
-    required:false
-  },
   qualificationBy:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'User',
