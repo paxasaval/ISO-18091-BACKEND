@@ -107,6 +107,7 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
       if(!rol){
         return res.status(401).json({ error: 'rol missing or invalid' })
       }else if(rol.name!==ROL_ADMIN){
+        console.log('rol',rol.name)
         return res.status(401).json({ error: 'unauthorized rol' })
       }
       //end-authorization
@@ -293,7 +294,7 @@ const updateIndicator = async (subindicator) => {
     qualification=1
     console.log('1')
     //console.log('check')
-  //si no ningun subindicador evaluado estas en gris 
+  //si no ningun subindicador evaluado estas en gris
   } else {
     indicator.qualification = 0
     qualification=0
