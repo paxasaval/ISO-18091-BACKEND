@@ -149,6 +149,7 @@ indicatorInstanceRouter.get('/:id',(req,res,next) => {
         { path:'evidences' }
       ]
     })
+    .populate('gadID')
     .then(indicator => {
       if(indicator){
         res.json(indicator)
