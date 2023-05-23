@@ -93,6 +93,7 @@ evidenveRouter.post('/',async (req,res,next) => {
 
 
 })
+//Calificar eviidencias
 evidenveRouter.put('/qualify/:id',async(req,res,next) => {
   try {
     //Authorizaction
