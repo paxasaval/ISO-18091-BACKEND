@@ -8,7 +8,6 @@ const Rol = require('../models/rol')
 const IndicatorInstance = require('../models/indicatorInstance')
 const  mongoose  = require('mongoose')
 const Commit = require('../models/commit')
-const evidence = require('../models/evidence')
 const ROL_ADMIN = process.env.ROL_ADMIN
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
@@ -20,6 +19,20 @@ evidenveRouter.get('/',(req,res,next) => {
     })
     .catch(error => next(error))
 })
+
+evidenveRouter.get('/subindicatorID/:id', async (req,res,next) => {
+  try {
+    const id = req.params.id
+    const evidences = await Evidenve.find({ subIndicatorID:id })
+      .populate('author')
+      .populate({ path: 'commits', model: 'Commit', populate: { path: 'autor', model: 'User' } })
+    //console.log(evidences[0].commits)
+    res.status(200).json(evidences)
+  } catch (error) {
+    next(error)
+  }
+})
+
 
 evidenveRouter.get('/:id',async(req,res,next) => {
   try {
@@ -120,7 +133,7 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
       }
       console.log('asdasd')
 
-      let evidenve = {
+      let updateEvidenve = {
         verified:true,
         qualification:body.qualification,
         qualificationBy:user,
@@ -138,10 +151,11 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
         const commitSave = await comit.save()
         const newCommit = evidenceCurrent.commits.concat(commitSave._id)
         console.log('comentario creado:',newCommit)
-        evidence.commits=newCommit
+        updateEvidenve.commits=newCommit
       }
-      console.log(evidence)
-      const updateEvidence = await Evidenve.findByIdAndUpdate(id,evidenve,{ new:true })
+      console.log('evidencia',updateEvidenve)
+      const updateEvidence = await Evidenve.findByIdAndUpdate(id,updateEvidenve,{ new:true })
+      updateSubindicator2(updateEvidence)
       const updateSubindicator = await Subindicator.findByIdAndUpdate(updateEvidence.subIndicatorID,{ lastUpdate:new Date() },{ new:true })
       console.log(updateSubindicator)
       return res.json(updateEvidence)
@@ -191,12 +205,21 @@ const updateSubindicator = async(evidence) => {
   let existEvidenceCritic = []
   subindcatorBD.evidences = subindcatorBD.evidences.concat(evidence)
   const arrayEvidences = subindcatorBD.evidences
+  let qualifySubindicator = 0
+  let scoreSubindicator = 0
   arrayCharacteristics.forEach(characteristic => {
+    const total = characteristic.score
+    scoreSubindicator+=total
     const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
-    //console.log(founded)
     //comprobar si existe evidencia para c/u caracteristica
     if(founded.length>0){
       existEvidence.push(true)
+      let sum = 0
+      founded.forEach(evidence => {
+        sum+=evidence.qualification
+      })
+      const qualify = sum/total
+      qualifySubindicator+=qualify
     }else{
       existEvidence.push(false)
     }
@@ -208,6 +231,11 @@ const updateSubindicator = async(evidence) => {
       existEvidenceCritic.push(true)
     }
   })
+  console.log('score',scoreSubindicator)
+  console.log('qualify',qualifySubindicator)
+  subindcatorBD.score=qualifySubindicator
+  subindcatorBD.totalScore=scoreSubindicator
+
   const count = existEvidence.reduce((acc,curr) => {
     if(curr){
       acc.trueCount++
@@ -238,6 +266,90 @@ const updateSubindicator = async(evidence) => {
   const indicatorUpdated = await updateIndicator(subindicatorUpdate)//ahora actualizamos el indicador
   return indicatorUpdated
 }
+
+
+const updateSubindicator2 = async(evidence) => {
+  const subindicatorID =String(evidence.subIndicatorID)
+  const subindcatorBD = await Subindicator.findById(subindicatorID)
+    .populate({
+      path:'evidences'
+    })
+    .populate({
+      path:'typeID',
+      populate:{
+        path:'characteristics'
+      }
+    })
+  const arrayCharacteristics = subindcatorBD.typeID.characteristics
+
+  //red
+  let existEvidence = []
+  //yellow
+  let existEvidenceCritic = []
+  //subindcatorBD.evidences = subindcatorBD.evidences.concat(evidence)
+  const arrayEvidences = subindcatorBD.evidences
+  let qualifySubindicator = 0
+  let scoreSubindicator = 0
+  arrayCharacteristics.forEach(characteristic => {
+    const total = characteristic.score
+    scoreSubindicator+=total
+    const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
+    //comprobar si existe evidencia para c/u caracteristica
+    if(founded.length>0){
+      existEvidence.push(true)
+      let sum = 0
+      founded.forEach(evidence => {
+        sum+=evidence.qualification
+      })
+      const qualify = sum/total
+      qualifySubindicator+=qualify
+    }else{
+      existEvidence.push(false)
+    }
+    //comprobar si falta evidencia para una caracteristica critica
+    if((characteristic.tier>1 && founded.length===0) ){
+      existEvidenceCritic.push(false)
+    }else{
+      //si la caracteristica no es critica o no hay evidencia
+      existEvidenceCritic.push(true)
+    }
+  })
+  console.log('score',scoreSubindicator)
+  console.log('qualify',qualifySubindicator)
+  subindcatorBD.score=qualifySubindicator
+  subindcatorBD.totalScore=scoreSubindicator
+
+  const count = existEvidence.reduce((acc,curr) => {
+    if(curr){
+      acc.trueCount++
+    }else{
+      acc.falseCount++
+    }
+    return acc
+  },{ trueCount:0,falseCount:0 })
+  const total = arrayCharacteristics.length
+  const percent = count.trueCount/total
+  //console.log(existEvidence)
+  //Si existen todas las evidencias = verde
+  if(!existEvidence.includes(false)){
+    subindcatorBD.qualification=3
+  //Si hay mas del 50% de evidencias = yellow
+  }else if(count.trueCount>count.falseCount){
+    subindcatorBD.qualification=2
+    //Si falta una evidencia critica || hay mas del 10% de evidencias pero menos del 50% = rojo
+  }else if(existEvidenceCritic.includes(false)|| (percent>0.1 && percent<=0.5)){
+    subindcatorBD.qualification=1
+  }else {
+    subindcatorBD.qualification=0
+  }
+  subindcatorBD.lastUpdate = new Date()
+  subindcatorBD.lastUpdateBy = evidence.author//el ultimo oque registro evidencia
+  const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcatorBD.id,subindcatorBD,{ new:true })//hemos actualizado y recalificado el suubindicador
+  console.log('2',subindicatorUpdate)
+  const indicatorUpdated = await updateIndicator(subindicatorUpdate)//ahora actualizamos el indicador
+  return indicatorUpdated
+}
+
 const updateIndicator = async (subindicator) => {
   // Convertir el indicadorID a una cadena
   const indicadorID = String(subindicator.indicadorID)

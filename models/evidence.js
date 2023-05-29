@@ -35,6 +35,14 @@ const evidenceSchema = new mongoose.Schema({
     type:Number,
     required:false
   },
+  score:{
+    type:Number,
+    required:false
+  },
+  totalScore:{
+    type:Number,
+    required:false
+  },
   qualificationBy:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'User',
