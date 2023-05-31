@@ -8,7 +8,6 @@ const Rol = require('../models/rol')
 
 const ROL_USER = process.env.ROL_USER
 
-
 const getPagination = (page, size) => {
   const limit = size ? +size : 3
   const offset = page ? page * limit : 0
@@ -16,445 +15,498 @@ const getPagination = (page, size) => {
   return { limit, offset }
 }
 
-subIndicatorRouter.get('/all',(req,res,next) => {
+subIndicatorRouter.get('/all', (req, res, next) => {
   SubIndicator.find({})
-    .populate({ path:'commits',model:'Commit' })
-    .populate({ path:'evidences',model:'Evidence' })
+    .populate({ path: 'commits', model: 'Commit' })
+    .populate({ path: 'evidences', model: 'Evidence' })
     .populate({
-      path:'typeID',
-      populate:{ path:'characteristics' }
+      path: 'typeID',
+      populate: { path: 'characteristics' },
     })
     .populate('createdBy')
-    .then(subIndicators => {
+    .then((subIndicators) => {
       res.json(subIndicators)
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
-subIndicatorRouter.get('/',(req,res,next) => {
+subIndicatorRouter.get('/', (req, res, next) => {
   const { page, size } = req.query
   const { limit, offset } = getPagination(page, size)
 
-  SubIndicator.paginate({},{
-    offset,
-    limit,
-    populate:[
-      {
-        path:'evidences',model:'Evidence'
-      },
-      { path:'evidences',model:'Evidence' },
-      {
-        path:'typeID',
-        populate:{ path:'characteristics' }
-      },
-      { path:'createdBy' }]
-  })
-    .then(subIndicators => {
-      res.json(subIndicators)
-    })
-    .catch(error => next(error))
-})
-
-subIndicatorRouter.get('/indicator/:id/generalSubindicators',async(req,res,next) => {
-  try {
-    const id = req.params.id
-    const options = {
-      select: { __v: 0, _id: 0 },
-    }
-    const data = await SubIndicator.aggregate([
-      {
-        $match: { indicadorID: new mongoose.Types.ObjectId(id) }
-      },
-      {
-        $lookup: {
-          from: 'evidences',
-          localField: 'evidences',
-          foreignField: '_id',
-          as: 'evidences',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $lookup: {
-          from: 'types',
-          localField: 'typeID',
-          foreignField: '_id',
-          as: 'typeID',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $unwind: { path: '$typeID', preserveNullAndEmptyArrays: true }
-      },
-      {
-        $lookup: {
-          from: 'characteristics',
-          localField: 'typeID.characteristics',
-          foreignField: '_id',
-          as: 'typeID.characteristics',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $match: { 'typeID.mandatory': true }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'createdBy',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true }
-      },
-      {
-        $project:{
-          id:'$_id',
-          indicadorID:1,
-          requireCover:1,
-          cover:1,
-          observationCover:1,
-          typeID:1,
-          name:1,
-          responsible:1,
-          qualification:1,
-          created:1,
-          lastUpdate:1,
-          state:1,
-          createdBy:1,
-          commits:1,
-          evidences:1,
-          _id:0,
-        }
-      },
-    ])
-    res.json(data)
-
-  } catch (error) {
-    next(error)
-  }
-})
-
-subIndicatorRouter.get('/indicator/:id',async(req,res,next) => {
-  try {
-    const id = req.params.id
-    const { page, size } = req.query
-    const { limit, offset } = getPagination(page, size)
-
-    const subIndicators = await SubIndicator.paginate({ indicadorID:id },{
+  SubIndicator.paginate(
+    {},
+    {
       offset,
       limit,
-      populate:[
-        { path:'evidences',model:'Evidence' },
+      populate: [
         {
-          path:'typeID',
-          populate:{ path:'characteristics' }
+          path: 'evidences',
+          model: 'Evidence',
         },
-        { path:'createdBy' }]
+        { path: 'evidences', model: 'Evidence' },
+        {
+          path: 'typeID',
+          populate: { path: 'characteristics' },
+        },
+        { path: 'createdBy' },
+      ],
+    }
+  )
+    .then((subIndicators) => {
+      res.json(subIndicators)
     })
-    res.json(subIndicators)
+    .catch((error) => next(error))
+})
 
+subIndicatorRouter.get(
+  '/indicator/:id/generalSubindicators',
+  async (req, res, next) => {
+    try {
+      const id = req.params.id
+      const options = {
+        select: { __v: 0, _id: 0 },
+      }
+      const data = await SubIndicator.aggregate([
+        {
+          $match: { indicadorID: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $lookup: {
+            from: 'evidences',
+            localField: 'evidences',
+            foreignField: '_id',
+            as: 'evidences',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $lookup: {
+            from: 'types',
+            localField: 'typeID',
+            foreignField: '_id',
+            as: 'typeID',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $unwind: { path: '$typeID', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $lookup: {
+            from: 'characteristics',
+            localField: 'typeID.characteristics',
+            foreignField: '_id',
+            as: 'typeID.characteristics',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $match: { 'typeID.mandatory': true },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'createdBy',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $project: {
+            id: '$_id',
+            indicadorID: 1,
+            requireCover: 1,
+            cover: 1,
+            observationCover: 1,
+            typeID: 1,
+            name: 1,
+            responsible: 1,
+            qualification: 1,
+            created: 1,
+            lastUpdate: 1,
+            state: 1,
+            createdBy: 1,
+            commits: 1,
+            evidences: 1,
+            _id: 0,
+          },
+        },
+      ])
+      res.json(data)
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+subIndicatorRouter.get('/indicator/:id/all', async (req, res, next) => {
+  try {
+    const id = req.params.id
+
+    const subIndicators = await SubIndicator.find({ indicadorID: id }).populate(
+      [
+        { path: 'evidences', model: 'Evidence' },
+        {
+          path: 'typeID',
+          populate: { path: 'characteristics' },
+        },
+        { path: 'createdBy' },
+      ]
+    )
+    res.json(subIndicators)
   } catch (error) {
     next(error)
   }
 })
-subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',async(req,res,next) => {
+
+subIndicatorRouter.get('/indicator/:id', async (req, res, next) => {
   try {
     const id = req.params.id
     const { page, size } = req.query
     const { limit, offset } = getPagination(page, size)
-    const options = {
-      select: { __v: 0, _id: 0 },
-    }
 
-    //const subIndicators = await SubIndicator.find({indicadorID: new mongoose.Types.ObjectId(id)})
-
-    //console.log(subIndicators)
-
-    const data = await SubIndicator.aggregate([
+    const subIndicators = await SubIndicator.paginate(
+      { indicadorID: id },
       {
-        $match: { indicadorID: new mongoose.Types.ObjectId(id) }
-      },
-      {
-        $lookup: {
-          from: 'evidences',
-          localField: 'evidences',
-          foreignField: '_id',
-          as: 'evidences',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $lookup: {
-          from: 'types',
-          localField: 'typeID',
-          foreignField: '_id',
-          as: 'typeID',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $unwind: { path: '$typeID', preserveNullAndEmptyArrays: true }
-      },
-      {
-        $lookup: {
-          from: 'characteristics',
-          localField: 'typeID.characteristics',
-          foreignField: '_id',
-          as: 'typeID.characteristics',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $match: { 'typeID.mandatory': false }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'createdBy',
-          pipeline:[
-            { $project:options.select }
-          ]
-        }
-      },
-      {
-        $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true }
-      },
-      {
-        $project:{
-          id:'$_id',
-          indicadorID:1,
-          requireCover:1,
-          cover:1,
-          observationCover:1,
-          typeID:1,
-          name:1,
-          responsible:1,
-          qualification:1,
-          created:1,
-          lastUpdate:1,
-          state:1,
-          createdBy:1,
-          commits:1,
-          evidences:1,
-          _id:0,
-        }
-      },
-      {
-        $facet: {
-          totalCount: [{ $count: 'count' }],
-          results: [
-            {
-              $skip: offset
-            }, {
-              $limit: limit
-            }]
-        }
+        offset,
+        limit,
+        populate: [
+          { path: 'evidences', model: 'Evidence' },
+          {
+            path: 'typeID',
+            populate: { path: 'characteristics' },
+          },
+          { path: 'createdBy' },
+        ],
       }
-    ])
-    console.log(data)
-
-    if(data[0].results.length===0){
-      return res.status(204).json({ message:'no subindcators specific' })
-    }
-    const totalCount = data[0].totalCount[0].count
-    const subindicators = data[0].results
-    const JSONsubindicators= JSON.parse(JSON.stringify(subindicators, { virtuals: true }))
-    const totalPages = Math.ceil(totalCount/size)
-    const hasNextPage = Number(page) < totalPages-1
-    const hasPrevPage = Number(page) > 0
-    const pagination = {
-      pag: Number(page),
-      size:Number(size),
-      totalPages:totalPages,
-      nextPage: hasNextPage ? Number(page) + 1 : null,
-      prevPage: hasPrevPage ? Number(page) - 1 : null,
-      existNextPage: hasNextPage,
-      existPrevpage: hasPrevPage,
-      totalDocs:totalCount,
-    }
-    return res.json({
-      pagination,
-      docs:JSONsubindicators
-    })
-
+    )
+    res.json(subIndicators)
   } catch (error) {
     next(error)
   }
 })
-subIndicatorRouter.get('/indicator/:indicatorID/type/:typeID',async(req,res,next) => {
-  try {
-    const  indicatorID = new mongoose.Types.ObjectId(req.params.indicatorID)
-    const  typeID = new mongoose.Types.ObjectId(req.params.typeID)
-    const subindicator = await SubIndicator.findOne({ indicadorID:indicatorID,typeID:typeID })
-      .populate('typeID')
-      .populate({
-        path:'evidences',
-        populate:{
-          path:'characteristicID'
-        }
+subIndicatorRouter.get(
+  '/indicator/:id/subindicatorsSpecific',
+  async (req, res, next) => {
+    try {
+      const id = req.params.id
+      const { page, size } = req.query
+      const { limit, offset } = getPagination(page, size)
+      const options = {
+        select: { __v: 0, _id: 0 },
+      }
+
+      //const subIndicators = await SubIndicator.find({indicadorID: new mongoose.Types.ObjectId(id)})
+
+      //console.log(subIndicators)
+
+      const data = await SubIndicator.aggregate([
+        {
+          $match: { indicadorID: new mongoose.Types.ObjectId(id) },
+        },
+        {
+          $lookup: {
+            from: 'evidences',
+            localField: 'evidences',
+            foreignField: '_id',
+            as: 'evidences',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $lookup: {
+            from: 'types',
+            localField: 'typeID',
+            foreignField: '_id',
+            as: 'typeID',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $unwind: { path: '$typeID', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $lookup: {
+            from: 'characteristics',
+            localField: 'typeID.characteristics',
+            foreignField: '_id',
+            as: 'typeID.characteristics',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $match: { 'typeID.mandatory': false },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'createdBy',
+            pipeline: [{ $project: options.select }],
+          },
+        },
+        {
+          $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $project: {
+            id: '$_id',
+            indicadorID: 1,
+            requireCover: 1,
+            cover: 1,
+            observationCover: 1,
+            typeID: 1,
+            name: 1,
+            responsible: 1,
+            qualification: 1,
+            created: 1,
+            lastUpdate: 1,
+            state: 1,
+            createdBy: 1,
+            commits: 1,
+            evidences: 1,
+            _id: 0,
+          },
+        },
+        {
+          $facet: {
+            totalCount: [{ $count: 'count' }],
+            results: [
+              {
+                $skip: offset,
+              },
+              {
+                $limit: limit,
+              },
+            ],
+          },
+        },
+      ])
+      console.log(data)
+
+      if (data[0].results.length === 0) {
+        return res.status(204).json({ message: 'no subindcators specific' })
+      }
+      const totalCount = data[0].totalCount[0].count
+      const subindicators = data[0].results
+      const JSONsubindicators = JSON.parse(
+        JSON.stringify(subindicators, { virtuals: true })
+      )
+      const totalPages = Math.ceil(totalCount / size)
+      const hasNextPage = Number(page) < totalPages - 1
+      const hasPrevPage = Number(page) > 0
+      const pagination = {
+        pag: Number(page),
+        size: Number(size),
+        totalPages: totalPages,
+        nextPage: hasNextPage ? Number(page) + 1 : null,
+        prevPage: hasPrevPage ? Number(page) - 1 : null,
+        existNextPage: hasNextPage,
+        existPrevpage: hasPrevPage,
+        totalDocs: totalCount,
+      }
+      return res.json({
+        pagination,
+        docs: JSONsubindicators,
       })
-      .populate('createdBy')
-    res.status(200).json(subindicator)
-  } catch (error) {
-    next(error)
+    } catch (error) {
+      next(error)
+    }
   }
-})
+)
+subIndicatorRouter.get(
+  '/indicator/:indicatorID/type/:typeID',
+  async (req, res, next) => {
+    try {
+      const indicatorID = new mongoose.Types.ObjectId(req.params.indicatorID)
+      const typeID = new mongoose.Types.ObjectId(req.params.typeID)
+      const subindicator = await SubIndicator.findOne({
+        indicadorID: indicatorID,
+        typeID: typeID,
+      })
+        .populate('typeID')
+        .populate({
+          path: 'evidences',
+          populate: {
+            path: 'characteristicID',
+          },
+        })
+        .populate('createdBy')
+      res.status(200).json(subindicator)
+    } catch (error) {
+      next(error)
+    }
+  }
+)
 
-subIndicatorRouter.get('/:id',(req,res,next) => {
+subIndicatorRouter.get('/:id', (req, res, next) => {
   const id = req.params.id
   SubIndicator.findById(id)
     .populate({
-      path:'indicadorID',
-      populate:{ path:'indicatorID' }
+      path: 'indicadorID',
+      populate: { path: 'indicatorID' },
     })
-    .populate({ path:'commits',model:'Commit' })
-    .populate({ path:'evidences',model:'Evidence' })
+    .populate({ path: 'commits', model: 'Commit' })
+    .populate({ path: 'evidences', model: 'Evidence' })
     .populate({
-      path:'typeID',
-      populate:{ path:'characteristics' }
+      path: 'typeID',
+      populate: { path: 'characteristics' },
     })
     .populate('createdBy')
-    .then(subIndicator => {
-      if(subIndicator){
+    .then((subIndicator) => {
+      if (subIndicator) {
         res.json(subIndicator)
-      }else{
+      } else {
         res.status(404).end()
       }
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
 
-subIndicatorRouter.delete('/:id',(req,res,next) => {
+subIndicatorRouter.delete('/:id', (req, res, next) => {
   const id = req.params.id
   SubIndicator.findByIdAndDelete(id)
     .then(() => {
       res.status(204).end()
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
-subIndicatorRouter.post('/',async(req,res,next) => {
+subIndicatorRouter.post('/', async (req, res, next) => {
   try {
     const body = req.body
-    if(body.name===undefined){
-      res.status(400).json({ error:'name missing' })
+    if (body.name === undefined) {
+      res.status(400).json({ error: 'name missing' })
     }
-    const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
-    const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
+    const arrayCommits = body.commits.map(
+      (commit) => new mongoose.Types.ObjectId(commit)
+    )
+    const arrayEvidences = body.evidences.map(
+      (evidence) => new mongoose.Types.ObjectId(evidence)
+    )
     const subIndicator = new SubIndicator({
-      indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
+      indicadorID: new mongoose.Types.ObjectId(body.indicadorID),
       typeID: new mongoose.Types.ObjectId(body.typeID),
-      name:body.name,
-      responsible:body.responsible,
-      qualification:body.qualification,
+      name: body.name,
+      responsible: body.responsible,
+      qualification: body.qualification,
       created: new Date(),
       lastUpdate: new Date(),
-      state:true,
+      state: true,
       createdBy: new mongoose.Types.ObjectId(body.createdBy),
-      commits:arrayCommits,
-      evidences:arrayEvidences
+      commits: arrayCommits,
+      evidences: arrayEvidences,
     })
     const savedSubIndicator = await subIndicator.save()
     const savedAndFormattedSubIndicator = savedSubIndicator.toJSON()
-    const indicator = await IndicatorInstance.findById(subIndicator.indicadorID)
+    const indicator = await IndicatorInstance.findById(
+      subIndicator.indicadorID
+    )
     const indicatorID = indicator.id
-    indicator.subindicators = indicator.subindicators.concat(savedSubIndicator.id)
-    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(indicatorID,indicator,{ new:true })
-    console.log('asdsdas',indicatorUpdated)
+    indicator.subindicators = indicator.subindicators.concat(
+      savedSubIndicator.id
+    )
+    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(
+      indicatorID,
+      indicator,
+      { new: true }
+    )
+    console.log('asdsdas', indicatorUpdated)
     res.json(savedAndFormattedSubIndicator)
   } catch (error) {
     next(error)
   }
 })
-subIndicatorRouter.post('/newSubindicator',async(req,res,next) => {
+subIndicatorRouter.post('/newSubindicator', async (req, res, next) => {
   try {
     //Authorizaction
     const token = getTokenFrom(req)
-    const decodedToken = jwt.verify(token,process.env.SECRET)
-    if(!token||!decodedToken){
+    const decodedToken = jwt.verify(token, process.env.SECRET)
+    if (!token || !decodedToken) {
       return res.status(401).json({ error: 'token missing or invalid' })
-    }else{
+    } else {
       const rolID = decodedToken.rol
       const rol = await Rol.findById(rolID)
-      if(!rol){
+      if (!rol) {
         return res.status(401).json({ error: 'rol missing or invalid' })
-      }else if(rol.name===ROL_USER){
+      } else if (rol.name === ROL_USER) {
         return res.status(401).json({ error: 'unauthorized rol' })
       }
     }
     //end-authorization
     const body = req.body
-    if(body.name===undefined){
-      res.status(400).json({ error:'name missing' })
+    if (body.name === undefined) {
+      res.status(400).json({ error: 'name missing' })
     }
     const user = new mongoose.Types.ObjectId(decodedToken.id)
-    const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
-    const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
+    const arrayCommits = body.commits.map(
+      (commit) => new mongoose.Types.ObjectId(commit)
+    )
+    const arrayEvidences = body.evidences.map(
+      (evidence) => new mongoose.Types.ObjectId(evidence)
+    )
     const subIndicator = new SubIndicator({
-      indicadorID:new mongoose.Types.ObjectId(body.indicadorID),
-      requireCover:body.requireCover || true,
-      cover:body.cover,
-      observationCover:body.observationCover,
+      indicadorID: new mongoose.Types.ObjectId(body.indicadorID),
+      requireCover: body.requireCover || true,
+      cover: body.cover,
+      observationCover: body.observationCover,
       typeID: new mongoose.Types.ObjectId(body.typeID),
-      name:body.name,
-      responsible:body.responsible,
-      qualification:body.qualification,
+      name: body.name,
+      responsible: body.responsible,
+      qualification: body.qualification,
       created: new Date(),
       lastUpdate: new Date(),
-      state:true,
+      state: true,
       createdBy: user,
-      commits:arrayCommits,
-      evidences:arrayEvidences
+      commits: arrayCommits,
+      evidences: arrayEvidences,
     })
     const savedSubIndicator = await subIndicator.save()
     const savedAndFormattedSubIndicator = savedSubIndicator.toJSON()
-    const indicator = await IndicatorInstance.findById(subIndicator.indicadorID)
+    const indicator = await IndicatorInstance.findById(
+      subIndicator.indicadorID
+    )
     const indicatorID = indicator.id
-    indicator.subindicators = indicator.subindicators.concat(savedSubIndicator.id)
-    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(indicatorID,indicator,{ new:true })
-    console.log('fgg',indicatorUpdated)
+    indicator.subindicators = indicator.subindicators.concat(
+      savedSubIndicator.id
+    )
+    const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(
+      indicatorID,
+      indicator,
+      { new: true }
+    )
+    console.log('fgg', indicatorUpdated)
     res.json(savedAndFormattedSubIndicator)
   } catch (error) {
     next(error)
   }
-
 })
-subIndicatorRouter.put('/:id',(req,res,next) => {
+subIndicatorRouter.put('/:id', (req, res, next) => {
   const body = req.body
   const id = req.params.id
-  const arrayCommits = body.commits.map(commit => new mongoose.Types.ObjectId(commit))
-  const arrayEvidences = body.evidences.map(evidence => new mongoose.Types.ObjectId(evidence))
+  const arrayCommits = body.commits.map(
+    (commit) => new mongoose.Types.ObjectId(commit)
+  )
+  const arrayEvidences = body.evidences.map(
+    (evidence) => new mongoose.Types.ObjectId(evidence)
+  )
   const subIndicator = {
-    name:body.name,
-    responsible:body.responsible,
-    typeID:body.typeID,
-    qualification:body.qualification,
-    lastUpdate:new Date(),
-    commits:arrayCommits,
-    evidences:arrayEvidences
+    name: body.name,
+    responsible: body.responsible,
+    typeID: body.typeID,
+    qualification: body.qualification,
+    lastUpdate: new Date(),
+    commits: arrayCommits,
+    evidences: arrayEvidences,
   }
-  SubIndicator.findByIdAndUpdate(id,subIndicator,{ new:true })
-    .then(updateSubIndicator => {
+  SubIndicator.findByIdAndUpdate(id, subIndicator, { new: true })
+    .then((updateSubIndicator) => {
       res.json(updateSubIndicator)
     })
-    .catch(error => next(error))
+    .catch((error) => next(error))
 })
 module.exports = subIndicatorRouter
