@@ -36,7 +36,7 @@ mongoose.connect(config.MONGODB_URI)
   })
 
 app.use(cors({
-  origin:'http://localhost:4200'
+  origin:['http://localhost:4200','https://iso18091storage.web.app'],
 }))
 app.use(express.static('build'))
 app.use(express.json())
