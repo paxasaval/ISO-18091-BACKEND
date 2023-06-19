@@ -75,6 +75,14 @@ userRouter.post('/signUp', async (req, res, next) => {
 
 //userRouter.post()
 
+userRouter.post('/password', async (req, res, next) => {
+  const body= req.body
+  const user = await User.findOne({ mail:body.mail })
+  const passwordCorrect = user === null
+    ?false
+    :await bcrypt.compare(body.password,user.password)
+  return res.status(200).json({key:true})
+})
 userRouter.get('/:id', (req, res, next) => {
   const id = req.params.id
   User.findById(id)

@@ -450,12 +450,14 @@ subIndicatorRouter.post('/newSubindicator', async (req, res, next) => {
       (evidence) => new mongoose.Types.ObjectId(evidence)
     )
     const subIndicator = new SubIndicator({
+      typeID: new mongoose.Types.ObjectId(body.typeID),
+      name: body.name,
       indicadorID: new mongoose.Types.ObjectId(body.indicadorID),
       requireCover: body.requireCover || true,
       cover: body.cover,
       observationCover: body.observationCover,
-      typeID: new mongoose.Types.ObjectId(body.typeID),
-      name: body.name,
+      isPlanned:body.isPlanned,
+      isDiagnosed:body.isDiagnosed,
       responsible: body.responsible,
       qualification: body.qualification,
       created: new Date(),

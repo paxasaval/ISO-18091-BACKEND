@@ -1,5 +1,15 @@
 const mongoose = require('mongoose')
 
+const contentSchema = new mongoose.Schema({
+  part: {
+    type: String,
+    required: true
+  },
+  key: {
+    type: Boolean,
+    required: true
+  }
+});
 const evidenceSchema = new mongoose.Schema({
   characteristicID:{
     type:mongoose.Schema.Types.ObjectId,
@@ -23,6 +33,10 @@ const evidenceSchema = new mongoose.Schema({
     type:String,
     required:false
   },
+  content:[{
+    type:contentSchema,
+    required:false
+  }],
   state:{
     type:Boolean,
     required:false

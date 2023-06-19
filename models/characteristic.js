@@ -37,6 +37,10 @@ const characteristicSchema = new mongoose.Schema({
     type:Boolean,
     required:true
   },
+  parts:[{
+    type:String,
+    required:false
+  }],
   allowed_formats:[{
     type:String,
     required:true

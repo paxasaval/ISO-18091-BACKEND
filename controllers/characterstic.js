@@ -37,6 +37,7 @@ characteristicRouter.post('/',(req,res,next) => {
     required: body.required || true,
     tier: body.tier,
     unique: body.unique || false,
+    parts:body.parts || [],
     allowed_formats:body.allowed_formats
   })
   characteristic.save()

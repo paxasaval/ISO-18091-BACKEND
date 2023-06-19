@@ -138,6 +138,7 @@ evidenveRouter.post('/',async (req,res,next) => {
         name:body.name,
         link:body.link,
         note:body.note,
+        content:body.content || [],
         state:true,
         verified:body.verified || false,
         qualification:body.qualification||0,
