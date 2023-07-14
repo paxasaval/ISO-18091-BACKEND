@@ -81,7 +81,7 @@ userRouter.post('/password', async (req, res, next) => {
   const passwordCorrect = user === null
     ?false
     :await bcrypt.compare(body.password,user.password)
-  return res.status(200).json({key:true})
+  return res.status(200).json({ key:true })
 })
 userRouter.get('/:id', (req, res, next) => {
   const id = req.params.id

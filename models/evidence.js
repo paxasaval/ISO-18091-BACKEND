@@ -9,7 +9,7 @@ const contentSchema = new mongoose.Schema({
     type: Boolean,
     required: true
   }
-});
+})
 const evidenceSchema = new mongoose.Schema({
   characteristicID:{
     type:mongoose.Schema.Types.ObjectId,
