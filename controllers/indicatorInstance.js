@@ -6,6 +6,7 @@ const IndicatorInstance = require('../models/indicatorInstance')
 const jwt = require('jsonwebtoken')
 const { getTokenFrom } = require('../utils/middleware')
 const Rol = require('../models/rol')
+
 const ROL_ADMIN = process.env.ROL_ADMIN
 
 
@@ -81,7 +82,7 @@ indicatorInstanceRouter.get('/byQuadrantAndPeriod',async (req,res,next) => {
     const options = {
       select: { __v: 0, _id: 0 },
     }
-    console.log(quadrant,period)
+    //console.log(quadrant,period)
     const indicatorInstance = await IndicatorInstance.aggregate([
       {
         $match:{ period:period,gadID:tenantID }
@@ -126,9 +127,149 @@ indicatorInstanceRouter.get('/byQuadrantAndPeriod',async (req,res,next) => {
       {
         $match: { 'indicatorID.quadrant': quadrant }
       },
+      {
+        $lookup:{
+          from:'subindicators',
+          localField:'subindicators',
+          foreignField:'_id',
+          as:'subindicators',
+          pipeline:[
+            { $project:options.select }
+          ]
+        }
+      },
     ])
-    console.log(indicatorInstance)
+    //console.log(indicatorInstance)
     res.status(200).json(indicatorInstance)
+  } catch (error) {
+    next(error)
+  }
+})
+
+indicatorInstanceRouter.get('/summarySubindicators', async (req,res,next) => {
+  try {
+    const period = new mongoose.Types.ObjectId(req.query.period)
+    const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
+    const indicators = await IndicatorInstance.find({ period:period,gadID:tenantID }).populate('subindicators')
+    const subindcators = indicators.map(indicator => indicator.subindicators).flat()
+    //console.log(subindcators)
+    const result = {
+      0:0,
+      1:0,
+      2:0,
+      3:0,
+    }
+    subindcators.forEach(subindicator => {
+      const qualify = subindicator.qualification
+      //console.log(subindicator)
+      if (Object.prototype.hasOwnProperty.call(result,qualify)) {
+        result[qualify]++
+      }
+    })
+    console.log(result)
+    res.status(200).json({
+      qualify_0:result[0],
+      qualify_1:result[1],
+      qualify_2:result[2],
+      qualify_3:result[3],
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+indicatorInstanceRouter.get('/summary',async (req,res,next) => {
+  try {
+    const period = new mongoose.Types.ObjectId(req.query.period)
+    const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
+    const options = {
+      select: { __v: 0, _id: 0 },
+    }
+    let result=[
+      {
+        quadrantName:'',
+        qualify_0:0,
+        qualify_1:0,
+        qualify_2:0,
+        qualify_3:0,
+      },
+      {
+        quadrantName:'',
+        qualify_0:0,
+        qualify_1:0,
+        qualify_2:0,
+        qualify_3:0,
+      },
+      {
+        quadrantName:'',
+        qualify_0:0,
+        qualify_1:0,
+        qualify_2:0,
+        qualify_3:0,
+      },
+      {
+        quadrantName:'',
+        qualify_0:0,
+        qualify_1:0,
+        qualify_2:0,
+        qualify_3:0,
+      }
+    ]
+    for (let i = 1; i <5 ; i++) {
+      const indicatorInstance = await IndicatorInstance.aggregate([
+        {
+          $match:{ period:period,gadID:tenantID }
+        },
+        {
+          $lookup:{
+            from:'indicators',
+            localField:'indicatorID',
+            foreignField:'_id',
+            as:'indicatorID',
+            pipeline:[
+              { $project:options.select }
+            ]
+          }
+        },
+        {
+          $unwind: { path: '$indicatorID', preserveNullAndEmptyArrays: true }
+        },
+        {
+          $lookup:{
+            from:'ods',
+            localField:'indicatorID.ods',
+            foreignField:'_id',
+            as:'indicatorID.ods',
+            pipeline:[
+              { $project:options.select }
+            ]
+          }
+        },
+        {
+          $lookup:{
+            from:'gad',
+            localField:'gadID',
+            foreignField:'_id',
+            as:'gadID',
+            pipeline:[
+              { $project:options.select }
+            ]
+          }
+        },
+        {
+          $match: { 'indicatorID.quadrant': i }
+        },
+      ])
+      //console.log(indicatorInstance[0])
+      result[i-1].quadrantName=indicatorInstance[0].indicatorID.quadrantName
+      result[i-1].qualify_0=indicatorInstance.filter((indicator) => indicator.qualification===0).length
+      result[i-1].qualify_1=indicatorInstance.filter((indicator) => indicator.qualification===1).length
+      result[i-1].qualify_2=indicatorInstance.filter((indicator) => indicator.qualification===2).length
+      result[i-1].qualify_3=indicatorInstance.filter((indicator) => indicator.qualification===3).length
+      //console.log(result)
+    }
+    res.status(200).json(result)
+
   } catch (error) {
     next(error)
   }

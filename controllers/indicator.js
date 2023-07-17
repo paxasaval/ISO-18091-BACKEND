@@ -51,6 +51,8 @@ indicatorRouter.get('/:id',(req,res,next) => {
     .catch(error => next(error))
 })
 
+
+
 indicatorRouter.delete('/:id',(req,res,next) => {
   const id = req.params.id
   Indicator.findByIdAndDelete(id)

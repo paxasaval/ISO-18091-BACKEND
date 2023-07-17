@@ -58,8 +58,7 @@ subIndicatorRouter.get('/', (req, res, next) => {
     .catch((error) => next(error))
 })
 
-subIndicatorRouter.get(
-  '/indicator/:id/generalSubindicators',
+subIndicatorRouter.get('/indicator/:id/generalSubindicators',
   async (req, res, next) => {
     try {
       const id = req.params.id
@@ -189,8 +188,7 @@ subIndicatorRouter.get('/indicator/:id', async (req, res, next) => {
     next(error)
   }
 })
-subIndicatorRouter.get(
-  '/indicator/:id/subindicatorsSpecific',
+subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',
   async (req, res, next) => {
     try {
       const id = req.params.id
@@ -319,8 +317,7 @@ subIndicatorRouter.get(
     }
   }
 )
-subIndicatorRouter.get(
-  '/indicator/:indicatorID/type/:typeID',
+subIndicatorRouter.get('/indicator/:indicatorID/type/:typeID',
   async (req, res, next) => {
     try {
       const indicatorID = new mongoose.Types.ObjectId(req.params.indicatorID)
@@ -343,7 +340,6 @@ subIndicatorRouter.get(
     }
   }
 )
-
 subIndicatorRouter.get('/:id', (req, res, next) => {
   const id = req.params.id
   SubIndicator.findById(id)
