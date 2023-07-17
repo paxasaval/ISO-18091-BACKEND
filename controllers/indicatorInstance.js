@@ -138,6 +138,9 @@ indicatorInstanceRouter.get('/byQuadrantAndPeriod',async (req,res,next) => {
           ]
         }
       },
+      {
+        $sort:{ 'indicatorID.number':1 }
+      }
     ])
     //console.log(indicatorInstance)
     res.status(200).json(indicatorInstance)

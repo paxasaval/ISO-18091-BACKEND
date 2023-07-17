@@ -111,7 +111,7 @@ const updateSubindicator = async(evidence) => {
     console.log('Calificacion:',3)
     subindcatorBD.qualification=3
   //Si hay mas del 50% de evidencias = yellow Y has sido planeado o diagnosticado
-  }else if(count.trueCount>count.falseCount && (subindcatorBD.isPlanned||subindcatorBD.isDiagnosed) ){
+  }else if(count.trueCount>=count.falseCount && (subindcatorBD.isPlanned||subindcatorBD.isDiagnosed) ){
     subindcatorBD.qualification=2
     console.log('Calificacion:',2)
 
