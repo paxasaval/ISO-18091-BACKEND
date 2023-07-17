@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema({
     type:String,
     requred:true
   },
-  author:{
+  from:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'User',
     required:false
@@ -30,7 +30,11 @@ const notificationSchema = new mongoose.Schema({
   },
   open:{
     type:Boolean,
-    requred:true
+    required:true
+  },
+  link:{
+    type:String,
+    required:false
   },
   subindicatorID:{
     type:mongoose.Schema.Types.ObjectId,

@@ -107,15 +107,15 @@ const updateSubindicator = async(evidence) => {
   const percent = count.trueCount/total
   //console.log(existEvidence)
   //Si existen todas las evidencias = verde Y ha sido planedo Y ha sido diagnosticado
-  if(!existEvidence.includes(false) && subindcatorBD.isPlanned && subindcatorBD.isDiagnosed){
+  if(!existEvidence.includes(false) && ((subindcatorBD.isPlanned && subindcatorBD.isDiagnosed)||(!subindcatorBD.requireCover))){
     console.log('Calificacion:',3)
     subindcatorBD.qualification=3
   //Si hay mas del 50% de evidencias = yellow Y has sido planeado o diagnosticado
-  }else if(count.trueCount>=count.falseCount && (subindcatorBD.isPlanned||subindcatorBD.isDiagnosed) ){
+  }else if(count.trueCount>=count.falseCount && ((subindcatorBD.isPlanned||subindcatorBD.isDiagnosed)||(!subindcatorBD.requireCover)) ){
     subindcatorBD.qualification=2
     console.log('Calificacion:',2)
 
-    //Si falta una evidencia critica || hay mas del 10% de evidencias pero menos del 50% = rojo
+    //Si falta una evidencia critica || hay mas de  l 10% de evidencias pero menos del 50% = rojo
   }else if(existEvidenceCritic.includes(false)|| (percent>0.1 && percent<=0.5)){
     subindcatorBD.qualification=1
     console.log('Calificacion:',1)
