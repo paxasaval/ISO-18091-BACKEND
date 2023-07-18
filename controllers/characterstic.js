@@ -31,10 +31,14 @@ characteristicRouter.post('/',(req,res,next) => {
     name: body.name,
     group: body.group,
     groupName: body.groupName,
+    score: body.score || 0,
+    help:body.help||'',
     isRequired: body.isRequired || true,
     required: body.required || true,
     tier: body.tier,
-    unique: body.unique || false
+    unique: body.unique || false,
+    parts:body.parts || [],
+    allowed_formats:body.allowed_formats
   })
   characteristic.save()
     .then(savedCharacteristic => savedCharacteristic.toJSON())
@@ -72,6 +76,7 @@ characteristicRouter.put('/:id',(req,res,next) => {
     group: body.group,
     groupName: body.groupName,
     required: body.required,
+    score: body.score || 0,
     tier: body.tier,
     isRequired: body.isRequired,
     unique: body.unique

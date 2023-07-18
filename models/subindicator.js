@@ -2,9 +2,18 @@ const mongoose = require('mongoose')
 const mongoosePaginate = require('mongoose-paginate-v2')
 
 const subIndicadorSchema = new mongoose.Schema({
+  typeID:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Type',
+    required:true
+  },
   indicadorID:{
     type:mongoose.Schema.Types.ObjectId,
     ref:'IndicatorInstance',
+    required:true
+  },
+  name:{
+    type:String,
     required:true
   },
   requireCover:{
@@ -19,14 +28,13 @@ const subIndicadorSchema = new mongoose.Schema({
     type:String,
     required:false
   },
-  typeID:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:'Type',
-    required:true
+  isPlanned:{
+    type:Boolean,
+    required:false
   },
-  name:{
-    type:String,
-    required:true
+  isDiagnosed:{
+    type:Boolean,
+    required:false
   },
   responsible:{
     type:String,
@@ -37,16 +45,26 @@ const subIndicadorSchema = new mongoose.Schema({
     default:0,
     required:false
   },
-  created:{
-    type:Date,
-    required:true
+  autoQualification:{
+    type:Number,
+    default:0,
+    required:false
   },
   lastUpdate:{
     type:Date,
-    required:true
+    required:false
+  },
+  lastUpdateBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:false
   },
   state:{
     type:Boolean,
+    required:true
+  },
+  created:{
+    type:Date,
     required:true
   },
   createdBy:{

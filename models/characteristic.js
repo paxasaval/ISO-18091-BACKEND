@@ -13,6 +13,10 @@ const characteristicSchema = new mongoose.Schema({
     type:String,
     required:true
   },
+  help:{
+    type:String,
+    required:false
+  },
   isRequired:{
     type:Boolean,
     required:true
@@ -21,6 +25,10 @@ const characteristicSchema = new mongoose.Schema({
     type:Boolean,
     required:true
   },
+  score:{
+    type:Number,
+    required:false
+  },
   tier:{
     type:Number,
     required:true
@@ -28,13 +36,24 @@ const characteristicSchema = new mongoose.Schema({
   unique:{
     type:Boolean,
     required:true
-  }
+  },
+  parts:[{
+    type:String,
+    required:false
+  }],
+  allowed_formats:[{
+    type:String,
+    required:true
+  }]
 })
 characteristicSchema.set('toJSON',{
   transform:(doc,returnObj) => {
-    returnObj.id = returnObj._id.toString()
-    delete returnObj._id
-    delete returnObj.__v
+    if(returnObj._id){
+      returnObj.id = returnObj._id.toString()
+      delete returnObj._id
+      delete returnObj.__v
+
+    }
   }
 })
 

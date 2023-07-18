@@ -24,6 +24,19 @@ indicatorRouter.get('/',(req,res,next) => {
   }
 })
 
+indicatorRouter.get('/byQuadrantAndNumber',async (req,res,next) => {
+  try {
+    const quadrant = Number(req.query.quadrant)
+    const number = Number(req.query.number)
+    const indicator = await Indicator.findOne({ quadrant:quadrant,number:number })
+      .populate('ods')
+    res.status(200).json(indicator)
+  } catch (error) {
+    next(error)
+  }
+
+})
+
 indicatorRouter.get('/:id',(req,res,next) => {
   const id = req.params.id
   Indicator.findById(id)
@@ -37,6 +50,8 @@ indicatorRouter.get('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
+
+
 
 indicatorRouter.delete('/:id',(req,res,next) => {
   const id = req.params.id

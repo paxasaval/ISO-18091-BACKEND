@@ -1,14 +1,13 @@
 const rolRouter = require('express').Router()
 const Rol = require('../models/rol')
 
-rolRouter.get('/',(req,res,next) => {
-  Rol.find({})
-    .then(result => {
-      if(result.length>0){
-        res.json(result)
-      }
-    })
-    .catch(error => next(error))
+rolRouter.get('/',async(req,res,next) => {
+  try {
+    const rol = await Rol.find({})
+    res.status(200).json(rol)
+  } catch (error) {
+    next(error)
+  }
 })
 
 rolRouter.post('/',(req,res,next) => {

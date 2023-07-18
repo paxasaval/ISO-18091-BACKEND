@@ -8,6 +8,7 @@
     "deploy": "git push",
     "start": "cross-env NODE_ENV=production node index.js",
     "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "dev-test": "cross-env NODE_ENV=test nodemon index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -26,7 +27,7 @@
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
     "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.0.3",
+    "mongoose": "^7.0.3", 
     "mongoose-paginate-v2": "^1.7.1",
     "mongoose-unique-validator": "^4.0.0"
   },

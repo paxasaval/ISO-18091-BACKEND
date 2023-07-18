@@ -1,5 +1,15 @@
 const mongoose = require('mongoose')
 
+const contentSchema = new mongoose.Schema({
+  part: {
+    type: String,
+    required: true
+  },
+  key: {
+    type: Boolean,
+    required: true
+  }
+})
 const evidenceSchema = new mongoose.Schema({
   characteristicID:{
     type:mongoose.Schema.Types.ObjectId,
@@ -8,8 +18,8 @@ const evidenceSchema = new mongoose.Schema({
   },
   subIndicatorID:{
     type:mongoose.Schema.Types.ObjectId,
-    ref:'subindicator',
-    required:false
+    ref:'SubIndicator',
+    required:true
   },
   name:{
     type:String,
@@ -23,10 +33,49 @@ const evidenceSchema = new mongoose.Schema({
     type:String,
     required:false
   },
+  content:[{
+    type:contentSchema,
+    required:false
+  }],
+  state:{
+    type:Boolean,
+    required:false
+  },
   verified:{
     type:Boolean,
     default:false
-  }
+  },
+  qualification:{
+    type:Number,
+    required:false
+  },
+  score:{
+    type:Number,
+    required:false
+  },
+  totalScore:{
+    type:Number,
+    required:false
+  },
+  qualificationBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:false
+  },
+  qualificationDate:{
+    type:Date,
+    required:false
+  },
+  author:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'User',
+    required:true
+  },
+  commits:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Commit',
+    required:false
+  }],
 })
 
 evidenceSchema.set('toJSON',{

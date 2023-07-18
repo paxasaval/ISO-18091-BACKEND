@@ -11,6 +11,10 @@ const usersSchema = new mongoose.Schema({
     required:true,
     unique:true
   },
+  image:{
+    type:String,
+    required:false
+  },
   password:{
     type:String,
     required:true
@@ -31,6 +35,11 @@ const usersSchema = new mongoose.Schema({
   state:{
     type:Boolean,
     default:true
+  },
+  gadID:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Gad',
+    required:true
   }
 })
 

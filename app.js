@@ -4,6 +4,8 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 //controllers
+const periodRouter = require('./controllers/period')
+const gadRouter = require('./controllers/gad')
 const odsRouter = require('./controllers/ods')
 const indicatorRouter = require('./controllers/indicator')
 const indicatorInstanceRouter = require('./controllers/indicatorInstance')
@@ -24,6 +26,7 @@ const mongoose = require('mongoose')
 
 logger.info('conecting to', config.MONGODB_URI)
 
+
 mongoose.connect(config.MONGODB_URI)
   .then(() => {
     logger.info('connected to MongoDB')
@@ -33,13 +36,15 @@ mongoose.connect(config.MONGODB_URI)
   })
 
 app.use(cors({
-  origin:'http://localhost:4200'
+  origin:['http://localhost:4200','https://iso18091storage.web.app'],
 }))
 app.use(express.static('build'))
 app.use(express.json())
 app.use(middleware.requestLogger)
 
 //app.use('api/notes',notesRouter)
+app.use('/api/gad',gadRouter)
+app.use('/api/period',periodRouter)
 app.use('/api/ods',odsRouter)
 app.use('/api/indicators',indicatorRouter)
 app.use('/api/users',userRouter)
