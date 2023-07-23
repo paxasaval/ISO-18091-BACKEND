@@ -23,11 +23,10 @@ const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 const mongoose = require('mongoose')
 
-
 logger.info('conecting to', config.MONGODB_URI)
 
-
-mongoose.connect(config.MONGODB_URI)
+mongoose
+  .connect(config.MONGODB_URI)
   .then(() => {
     logger.info('connected to MongoDB')
   })
@@ -35,27 +34,33 @@ mongoose.connect(config.MONGODB_URI)
     logger.error('error conecting to MongoDB:', error.message)
   })
 
-app.use(cors({
-  origin:['http://localhost:4200','https://iso18091storage.web.app'],
-}))
+app.use(
+  cors({
+    origin: [
+      'http://localhost:4200',
+      'https://iso18091storage.web.app',
+      'https://transformaciondigitalgobiernosabiertos.azurewebsites.net',
+    ],
+  })
+)
 app.use(express.static('build'))
 app.use(express.json())
 app.use(middleware.requestLogger)
 
 //app.use('api/notes',notesRouter)
-app.use('/api/gad',gadRouter)
-app.use('/api/period',periodRouter)
-app.use('/api/ods',odsRouter)
-app.use('/api/indicators',indicatorRouter)
-app.use('/api/users',userRouter)
-app.use('/api/rols',rolRouter)
-app.use('/api/type',typeRouter)
-app.use('/api/characteristics',characteristicRouter)
-app.use('/api/subIndicators',subIndicatorRouter)
-app.use('/api/indicatorsInstance',indicatorInstanceRouter)
-app.use('/api/evidences',evidenveRouter)
-app.use('/api/commits',commitRouter)
-app.use('/api/login',loginRouter)
+app.use('/api/gad', gadRouter)
+app.use('/api/period', periodRouter)
+app.use('/api/ods', odsRouter)
+app.use('/api/indicators', indicatorRouter)
+app.use('/api/users', userRouter)
+app.use('/api/rols', rolRouter)
+app.use('/api/type', typeRouter)
+app.use('/api/characteristics', characteristicRouter)
+app.use('/api/subIndicators', subIndicatorRouter)
+app.use('/api/indicatorsInstance', indicatorInstanceRouter)
+app.use('/api/evidences', evidenveRouter)
+app.use('/api/commits', commitRouter)
+app.use('/api/login', loginRouter)
 
 //
 app.use(middleware.unknownEndpoint)
