@@ -458,7 +458,7 @@ subIndicatorRouter.post('/newSubindicator', async (req, res, next) => {
       qualification: body.qualification,
       created: new Date(),
       lastUpdate: new Date(),
-      state: true,
+      state: false,
       createdBy: user,
       commits: arrayCommits,
       evidences: arrayEvidences,

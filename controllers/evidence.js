@@ -146,7 +146,7 @@ evidenveRouter.post('/',async (req,res,next) => {
         commits:[]
       })
       const savedEvidence = await evidenve.save()//tenemos lal evidencia guardada
-      const updatedSubindicator = await updateSubindicator(savedEvidence)//actualizamos el subindidicador
+      const updatedSubindicator = await updateSubindicator(savedEvidence,req)//actualizamos el subindidicador
 
       //const updatedSubindicator = await updateSubindicator(savedEvidence)//actualizamos el subindidicador
       console.log(updatedSubindicator)

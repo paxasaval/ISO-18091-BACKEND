@@ -1,7 +1,7 @@
 const logger = require('./logger')
 const Subindicator = require('../models/subindicator')
 const IndicatorInstance = require('../models/indicatorInstance')
-
+const gad = require('../models/gad')
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
   logger.info('Path:  ', request.path)
@@ -43,7 +43,7 @@ const getTokenFrom = (req) => {
   return null
 }
 
-const updateSubindicator = async(evidence) => {
+const updateSubindicator = async(evidence,req) => {
   const subindicatorID =String(evidence.subIndicatorID)
   const subindcatorBD = await Subindicator.findById(subindicatorID)
     .populate({
@@ -125,14 +125,20 @@ const updateSubindicator = async(evidence) => {
     console.log('Calificacion:',0)
 
   }
+  const gadID = req.get('tenant')
+  const gadBD = await gad.findById(gadID)
+  if(gadBD.publishAuto){
+    subindcatorBD.state = true
+  }
   subindcatorBD.lastUpdate = new Date()
   subindcatorBD.lastUpdateBy = evidence.author//el ultimo oque registro evidencia
   const subindicatorUpdate = await Subindicator.findByIdAndUpdate(subindcatorBD.id,subindcatorBD,{ new:true })//hemos actualizado y recalificado el suubindicador
-  console.log('2',subindicatorUpdate)
-  const indicatorUpdated = await updateIndicator(subindicatorUpdate)//ahora actualizamos el indicador
+  //console.log('2',subindicatorUpdate)
+
+  const indicatorUpdated = await updateIndicator(subindicatorUpdate,req)//ahora actualizamos el indicador
   return indicatorUpdated
 }
-const updateIndicator = async (subindicator) => {
+const updateIndicator = async (subindicator,req) => {
   // Convertir el indicadorID a una cadena
   const indicadorID = String(subindicator.indicadorID)
 
@@ -198,7 +204,11 @@ const updateIndicator = async (subindicator) => {
   // Actualizar la fecha y el responsable de la última actualización
   indicator.lastUpdate = new Date()
   indicator.lastUpdateBy = subindicator.lastUpdateBy
-
+  const gadID = req.get('tenant')
+  const gadBD = await gad.findById(gadID)
+  if(gadBD.publishAuto){
+    indicator.state = true
+  }
   // Actualizar y retornar el indicador actualizado
   const indicatorUpdated = await IndicatorInstance.findByIdAndUpdate(
     indicadorID,
