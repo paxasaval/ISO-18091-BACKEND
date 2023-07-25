@@ -54,7 +54,12 @@ const gadSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref:'Report',
     required:false,
-  }]
+  }],
+  reportDefault:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref:'Report',
+    required:false,
+  }
 })
 gadSchema.set('toJSON', {
   transform: (doc, returnObj) => {
