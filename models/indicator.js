@@ -1,9 +1,4 @@
 const mongoose = require('mongoose')
-/* const odsShema = new mongoose.Schema({
-  number:Number,
-  name:String,
-  img:String
-}) */
 
 const indicadorSchema = new mongoose.Schema({
   name:{
@@ -38,14 +33,10 @@ const indicadorSchema = new mongoose.Schema({
     type:String,
     required:true
   },
-  qualification:{
-    type:Number,
-    default:0,
-    required:false
-  },
-  ods:{
-    type:[String]
-  }
+  ods:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Ods'
+  }]
 })
 indicadorSchema.set('toJSON',{
   transform:(doc,returnObj) => {

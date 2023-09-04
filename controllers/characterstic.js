@@ -1,15 +1,26 @@
 const characteristicRouter = require('express').Router()
-const Characteristic = require('../models/caracteristicas')
+const Characteristic = require('../models/characteristic')
 
 characteristicRouter.get('/',(req,res,next) => {
-  Characteristic.find({})
-    .then(result => {
-      if(result.length>0){
-        res.json(result)
-      }
-    })
-    .catch(error => next(error))
+  const query = req.query
+  if(!query){
+    Characteristic.find({})
+      .then(result => {
+        if(result.length>0){
+          res.json(result)
+        }
+      })
+      .catch(error => next(error))
+  }else{
+    const type = req.query.type
+    Characteristic.find({ typeID:type })
+      .then(characteristic => {
+        res.json(characteristic)
+      })
+      .catch(error => next(error))
+  }
 })
+
 
 characteristicRouter.post('/',(req,res,next) => {
   const body = req.body
@@ -20,10 +31,14 @@ characteristicRouter.post('/',(req,res,next) => {
     name: body.name,
     group: body.group,
     groupName: body.groupName,
-    required: body.required,
+    score: body.score || 0,
+    help:body.help||'',
+    isRequired: body.isRequired || true,
+    required: body.required || true,
     tier: body.tier,
-    typeID: body.typeID,
-    unique: body.unique
+    unique: body.unique || false,
+    parts:body.parts || [],
+    allowed_formats:body.allowed_formats
   })
   characteristic.save()
     .then(savedCharacteristic => savedCharacteristic.toJSON())
@@ -61,8 +76,9 @@ characteristicRouter.put('/:id',(req,res,next) => {
     group: body.group,
     groupName: body.groupName,
     required: body.required,
+    score: body.score || 0,
     tier: body.tier,
-    typeID: body.typeID,
+    isRequired: body.isRequired,
     unique: body.unique
   }
   Characteristic.findByIdAndUpdate(id,characteristic,{ new:true })
