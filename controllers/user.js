@@ -1,8 +1,6 @@
 const userRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const User = require('../models/users')
-//const jwt = require('jsonwebtoken')
-//const secretKey = 'baldurWatch.01'
 const bcrypt = require('bcrypt')
 const Rol = require('../models/rol')
 
@@ -76,12 +74,19 @@ userRouter.post('/signUp', async (req, res, next) => {
 //userRouter.post()
 
 userRouter.post('/password', async (req, res, next) => {
-  const body= req.body
-  const user = await User.findOne({ mail:body.mail })
-  const passwordCorrect = user === null
-    ?false
-    :await bcrypt.compare(body.password,user.password)
-  return res.status(200).json({ key:true })
+  try {
+    const body = req.body
+    const user = await User.findOne({ mail: body.mail })
+    const passwordCorrect =
+      user === null
+        ? false
+        : await bcrypt.compare(body.password, user.password)
+    if(passwordCorrect){
+      return res.status(200).json({ key: true })
+    }
+  } catch (error) {
+    next(error)
+  }
 })
 userRouter.get('/:id', (req, res, next) => {
   const id = req.params.id

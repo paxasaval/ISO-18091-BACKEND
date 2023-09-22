@@ -17,7 +17,8 @@ const usersSchema = new mongoose.Schema({
   },
   password:{
     type:String,
-    required:true
+    required:true,
+    select:false
   },
   rol:{
     type:mongoose.Schema.Types.ObjectId,
