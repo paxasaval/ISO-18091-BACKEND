@@ -49,11 +49,12 @@ const evidenceSchema = new mongoose.Schema({
     type:Number,
     required:false
   },
-  score:{
-    type:Number,
+  rubric:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Rubric',
     required:false
   },
-  totalScore:{
+  totalRubric:{
     type:Number,
     required:false
   },

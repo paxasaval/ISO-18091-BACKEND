@@ -41,6 +41,11 @@ const characteristicSchema = new mongoose.Schema({
     type:String,
     required:false
   }],
+  valuation:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Valuation',
+    required:true
+  }],
   allowed_formats:[{
     type:String,
     required:true

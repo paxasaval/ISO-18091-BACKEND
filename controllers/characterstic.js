@@ -1,5 +1,6 @@
 const characteristicRouter = require('express').Router()
 const Characteristic = require('../models/characteristic')
+const mongoose = require('mongoose')
 
 characteristicRouter.get('/',(req,res,next) => {
   const query = req.query
@@ -27,6 +28,8 @@ characteristicRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
+  const valuation = body.valuation
+  const valuationArray = valuation.map(str => mongoose.Types.ObjectId(str))
   const characteristic = new Characteristic({
     name: body.name,
     group: body.group,
@@ -38,6 +41,7 @@ characteristicRouter.post('/',(req,res,next) => {
     tier: body.tier,
     unique: body.unique || false,
     parts:body.parts || [],
+    valuation:valuationArray,
     allowed_formats:body.allowed_formats
   })
   characteristic.save()

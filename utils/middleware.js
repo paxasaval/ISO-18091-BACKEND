@@ -64,7 +64,7 @@ const updateSubindicator = async(evidence,req) => {
   let qualifySubindicator = 0
   let scoreSubindicator = 0
   arrayCharacteristics.forEach(characteristic => {
-    const total = characteristic.score
+    const total = characteristic.score//cambiar por el total de valuation
     scoreSubindicator+=total
     const founded = arrayEvidences.filter(evidence => evidence.characteristicID.equals(characteristic._id))
     //comprobar si existe evidencia para c/u caracteristica
