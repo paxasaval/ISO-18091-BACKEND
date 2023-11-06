@@ -20,7 +20,7 @@ periodRouter.get('/', async (req, res, next) => {
       return res.status(400).json({ erro:'tenat is nesesary' })
     }
     const period = await Period.find({})
-    console.log('p',period)
+    //console.log('p',period)
     return res.status(200).json(period)
   } catch (error) {
     next(error)

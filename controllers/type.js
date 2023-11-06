@@ -7,7 +7,7 @@ typeRouter.get('/',async(req,res,next) => {
     let mandatory = req.query.mandatory
     if(mandatory){
       const mandatoryB = mandatory==='true'?true:false
-      console.log(mandatory)
+      //console.log(mandatory)
       const types = await Type.find({ mandatory:mandatoryB }).populate('characteristics')
       res.json(types)
     }else{
@@ -62,6 +62,17 @@ typeRouter.post('/', (req, res, next) => {
     .then((savedType) => savedType.toJSON())
     .then((savedAndFormattedType) => res.json(savedAndFormattedType))
     .catch((error) => next(error))
+})
+typeRouter.post('/addExtraInfo',async(req,res,next) => {
+  try {
+    const body = req.body
+    const id = req.query.id
+    const extras = body.extras
+    const characteristicUpload = await Type.findByIdAndUpdate(id,{ extraInfo:extras },{ new:true })
+    res.json(characteristicUpload)
+  } catch (error) {
+    next(error)
+  }
 })
 typeRouter.put('/:id', (req, res, next) => {
   const body = req.body

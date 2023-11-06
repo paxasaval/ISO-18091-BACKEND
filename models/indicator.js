@@ -40,7 +40,9 @@ const indicadorSchema = new mongoose.Schema({
 })
 indicadorSchema.set('toJSON',{
   transform:(doc,returnObj) => {
-    returnObj.id = returnObj._id.toString()
+    const id = returnObj._id.toString()
+    //console.log(id)
+    returnObj.id = id
     delete returnObj._id
     delete returnObj.__v
   }

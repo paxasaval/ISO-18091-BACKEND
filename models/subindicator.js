@@ -45,6 +45,16 @@ const subIndicadorSchema = new mongoose.Schema({
     default:0,
     required:false
   },
+  score:{
+    type:Number,
+    default:0,
+    required:false
+  },
+  totalScore:{
+    type:Number,
+    default:0,
+    required:false
+  },
   autoQualification:{
     type:Number,
     default:0,
@@ -79,14 +89,19 @@ const subIndicadorSchema = new mongoose.Schema({
   evidences:[{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Evidence',
-  }]
-
+  }],
+  extraInfo:{
+    type:mongoose.Schema.Types.Mixed,
+    required:false,
+    default:{}
+  }
 })
 
 subIndicadorSchema.plugin(mongoosePaginate)
 
 subIndicadorSchema.set('toJSON',{
   transform:(doc,returnObj) => {
+    //console.log('subindicator',returnObj)
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
     delete returnObj.__v

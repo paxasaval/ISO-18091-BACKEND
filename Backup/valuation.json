@@ -1,0 +1,73 @@
+[
+{
+    "name": "Se encuentran resaltadas y específicadas las páginas o apartados que se refieren al indicador",
+    "category": "Requisito",
+    "maxValue": 1
+},
+{
+    "name":"Posee nombres de responsabilidad",
+    "category": "Requisito",
+    "maxValue": 1
+},
+{
+    "name":"Posee firmas de responsabilidad",
+    "category": "Requisito",
+    "maxValue": 1
+},
+{
+    "name":"Posee sellos de responsabilidad",
+    "category": "Requisito",
+    "maxValue": 1
+},
+{
+    "name":"Posee logos institucionales",
+    "category": "Requisito",
+    "maxValue": 1
+},
+{
+    "name":"De acuerdo a las competencias laborales (según el indicador)",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"De acuerdo a competencias blandas",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"Descripción del contexto, con base en información cuantitativa y cualitativa",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"Detección de las necesidades y descripción de la situación actual",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"Recursos disponibles (humanos, materiales y financieros)",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"Diagnóstico",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"El listado de programas o actividades están relacionados al diagnóstico",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"La (s) evidencia (s) presentada (s) estan relacionadas a las funciones y responsabilidades de la instancia responsable",
+    "category": "Calidad",
+    "maxValue": 1
+},
+{
+    "name":"La (s) evidencia (s) presentada (s) estan relacionadas al diagnóstico en referencia al indicador",
+    "category": "Calidad",
+    "maxValue": 1
+}
+
+]

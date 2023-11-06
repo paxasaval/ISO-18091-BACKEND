@@ -9,7 +9,7 @@ const valuationSchema = new mongoose.Schema({
     type:String,
     required:true
   },
-  scale:{
+  maxValue:{
     type:Number,
     required:true
   },

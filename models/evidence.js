@@ -77,9 +77,15 @@ const evidenceSchema = new mongoose.Schema({
     ref:'Commit',
     required:false
   }],
+  extras:{
+    type:mongoose.Schema.Types.Mixed,
+    required:false,
+    default:{}
+  },
 })
 evidenceSchema.set('toJSON',{
   transform:(doc,returnObj) => {
+    //console.log('evidence',returnObj)
     returnObj.id = returnObj._id.toString()
     delete returnObj._id
     delete returnObj.__v

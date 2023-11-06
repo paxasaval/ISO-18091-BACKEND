@@ -3,7 +3,7 @@ const { default: mongoose } = require('mongoose')
 const Indicator = require('../models/indicator')
 
 indicatorRouter.get('/',(req,res,next) => {
-  console.log(req.query)
+  //console.log(req.query)
   if(Object.entries(req.query).length === 0){
     Indicator.find({})
       .populate('ods')
@@ -13,7 +13,7 @@ indicatorRouter.get('/',(req,res,next) => {
       .catch(error => next(error))
   }else{
     const quadrant = Number(req.query.quadrant)
-    console.log(req.query)
+    //console.log(req.query)
     Indicator.find({ quadrant:quadrant })
       .populate('ods')
       .sort('number')
@@ -66,10 +66,10 @@ indicatorRouter.post('/',(req,res,next) => {
   if(body.name===undefined){
     res.status(400).json({ error:'name missing' })
   }
-  console.log('ods')
-  console.log(body.ods)
+  //console.log('ods')
+  //console.log(body.ods)
   const arrayODS = body.ods.map( ods => {
-    console.log(ods)
+    //console.log(ods)
     return new mongoose.Types.ObjectId(ods)
   })
   const indicator = new Indicator({
