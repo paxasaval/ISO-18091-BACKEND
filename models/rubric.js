@@ -3,10 +3,16 @@ const mongoose = require('mongoose')
 const rubricSchema = new mongoose.Schema({
   valuation:{
     type:mongoose.Schema.Types.ObjectId,
+    ref:'Valuation',
     required:true
   },
   qualification:{
     type:Number,
+    required:true
+  },
+  evidence:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Evidence',
     required:true
   }
 })

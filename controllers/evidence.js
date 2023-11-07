@@ -9,6 +9,8 @@ const Rol = require('../models/rol')
 const IndicatorInstance = require('../models/indicatorInstance')
 const  mongoose  = require('mongoose')
 const Commit = require('../models/commit')
+const Rubric = require('../models/rubric')
+
 const Characteristic = require('../models/characteristic')
 const ROL_ADMIN = process.env.ROL_ADMIN
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
@@ -44,6 +46,7 @@ evidenveRouter.get('/:id',async(req,res,next) => {
       .populate('characteristicID')
       .populate('subIndicatorID')
       .populate('commits')
+      .populate('rubric')
     if(evidence){
       return res.status(200).json(evidence)
     }else{
@@ -193,15 +196,43 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
         return res.status(400).json({ error:'missing id or qualification' })
       }
       //console.log('asdasd')
-
-      let updateEvidenve = {
-        verified:true,
+      let evidenveUpdating = {
+        verified:body.verified|false,
         qualification:body.qualification,
         qualificationBy:user,
         qualificationDate:new Date(),
+        commits:[]
       }
-      //console.log('asdasd')
+      let rubric
       const evidenceCurrent = await Evidenve.findById(id)
+      if(evidenceCurrent.rubric.length===0){
+        console.log('no hay rubrica')
+        rubric = await Promise.all(body.rubric.map(async(r) => {
+          const newRubric = new Rubric({
+            valuation: new mongoose.Types.ObjectId(r.valuation),
+            qualification: r.qualification,
+            evidence:evidenceCurrent._id
+          })
+          const rSave = await newRubric.save()
+          return rSave._id
+        }))
+      }else{
+        console.log('si hay rubrica')
+        const array =  body.rubric
+        for (const i of array) {
+          const rubricDB = await Rubric.findOne({ valuation: i.valuation, evidence: evidenceCurrent._id })
+          //console.log('r', rubricDB)
+          const updateRubric = await Rubric.findByIdAndUpdate(rubricDB._id, { qualification: i.qualification }, { new: true })
+          //console.log('u', updateRubric)
+        }
+
+      }
+      evidenceCurrent.rubric=rubric
+      //console.log('asdasd')
+      evidenceCurrent.qualification=body.qualification
+      evidenceCurrent.qualificationBy=body.user
+      evidenceCurrent.verified=body.verified|false
+      evidenceCurrent.qualificationDate=new Date()
       if(body.commit){
         const comit = new Commit({
           autor:user,
@@ -210,13 +241,13 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
           lastUpdate:new Date()
         })
         const commitSave = await comit.save()
-        const newCommit = evidenceCurrent.commits.concat(commitSave._id)
-        console.log('comentario creado:',newCommit)
-        updateEvidenve.commits=newCommit
-        console.log('califcacion:',updateEvidence.qualification)
+        const arrayUpdate = evidenceCurrent.commits.concat(commitSave._id)
+        console.log('comentarios actualizaos',arrayUpdate)
+        evidenceCurrent.commits = arrayUpdate
+        console.log('califcacion:',evidenceCurrent.qualification)
       }
       //console.log('evidencia',updateEvidenve)
-      const updateEvidence = await Evidenve.findByIdAndUpdate(id,updateEvidenve,{ new:true })
+      const updateEvidence = await Evidenve.findByIdAndUpdate(id,evidenceCurrent,{ new:true })
       const indi = await updateSubindicator2(updateEvidence,req)
       if(indi){
         console.log('indicator updated')
