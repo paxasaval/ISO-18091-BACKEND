@@ -4,7 +4,7 @@ const { default: mongoose } = require('mongoose')
 const SubIndicator = require('../models/subindicator')
 const jwt = require('jsonwebtoken')
 const IndicatorInstance = require('../models/indicatorInstance')
-const { getTokenFrom } = require('../utils/middleware')
+const { getTokenFrom, notify } = require('../utils/middleware')
 const Rol = require('../models/rol')
 
 const ROL_USER = process.env.ROL_USER
@@ -372,9 +372,6 @@ subIndicatorRouter.delete('/:id', (req, res, next) => {
     })
     .catch((error) => next(error))
 })
-
-
-
 subIndicatorRouter.post('/', async (req, res, next) => {
   try {
     const body = req.body
@@ -481,6 +478,8 @@ subIndicatorRouter.post('/newSubindicator', async (req, res, next) => {
       { new: true }
     )
     //console.log('fgg', indicatorUpdated)
+    await notify(1,user,2,savedSubIndicator.id,req)
+    console.log('notificacion enviada')
     res.json(savedAndFormattedSubIndicator)
   } catch (error) {
     next(error)

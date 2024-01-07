@@ -4,7 +4,7 @@ const Evidenve = require('../models/evidence')
 //const { default: mongoose } = require('mongoose')
 const Subindicator = require('../models/subindicator')
 const jwt = require('jsonwebtoken')
-const { getTokenFrom, updateSubindicator, updateSubindicator2 } = require('../utils/middleware')
+const { getTokenFrom, notify, updateSubindicator, updateSubindicator2 } = require('../utils/middleware')
 const Rol = require('../models/rol')
 const IndicatorInstance = require('../models/indicatorInstance')
 const  mongoose  = require('mongoose')
@@ -36,7 +36,6 @@ evidenveRouter.get('/subindicatorID/:id', async (req,res,next) => {
     next(error)
   }
 })
-
 
 evidenveRouter.get('/:id',async(req,res,next) => {
   try {
@@ -158,6 +157,8 @@ evidenveRouter.post('/',async (req,res,next) => {
       }
       //console.log(req)
       const savedEvidence = await evidenve.save()//tenemos lal evidencia guardada
+      await notify(1,user,3,savedEvidence.id,req)
+
       const updatedSubindicator = await updateSubindicator(savedEvidence,req)//actualizamos el subindidicador
       //const updatedSubindicator = await updateSubindicator(savedEvidence)//actualizamos el subindidicador
       //console.log('actualizao',updatedSubindicator)
@@ -248,6 +249,8 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
       }
       //console.log('evidencia',updateEvidenve)
       const updateEvidence = await Evidenve.findByIdAndUpdate(id,evidenceCurrent,{ new:true })
+      await notify(2,user,3,updateEvidence.id,req)
+
       const indi = await updateSubindicator2(updateEvidence,req)
       if(indi){
         console.log('indicator updated')

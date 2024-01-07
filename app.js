@@ -17,6 +17,8 @@ const rolRouter = require('./controllers/rol')
 const userRouter = require('./controllers/user')
 const commitRouter = require('./controllers/commit')
 const loginRouter = require('./controllers/login')
+const notifyRouter = require('./controllers/notification')
+
 
 //Utils
 const middleware = require('./utils/middleware')
@@ -62,6 +64,7 @@ app.use('/api/indicatorsInstance', indicatorInstanceRouter)
 app.use('/api/evidences', evidenveRouter)
 app.use('/api/commits', commitRouter)
 app.use('/api/login', loginRouter)
+app.use('/api/notifications',notifyRouter)
 
 //
 app.use(middleware.unknownEndpoint)

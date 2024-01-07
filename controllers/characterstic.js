@@ -90,7 +90,7 @@ characteristicRouter.post('/addExtra',async(req,res,next) => {
     const extras = body.extras
     const characteristicUpload = await Characteristic.findByIdAndUpdate(id,{ extras                                                       },{ new:true })
     res.json(characteristicUpload)
-  } catch (error) { 
+  } catch (error) {
     next(error)
   }
 })

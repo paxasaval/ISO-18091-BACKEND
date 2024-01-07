@@ -1,7 +1,13 @@
 const logger = require('./logger')
 const Subindicator = require('../models/subindicator')
 const IndicatorInstance = require('../models/indicatorInstance')
+const Indicator = require('../models/indicator')
+const Evidence = require('../models/evidence')
 const gad = require('../models/gad')
+const User = require('../models/users')
+const Notify = require('../models/notifications')
+const { ROL_ADMIN } = require('../utils/config')
+
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
   logger.info('Path:  ', request.path)
@@ -229,11 +235,134 @@ const updateSubindicator2 = async(evidence,req) => {
   const indicatorUpdated = await updateIndicator(subindicatorUpdate,req)//ahora actualizamos el indicador
   return indicatorUpdated
 }
+
+const notify = async(type,from,itemType,itemID,req) => {
+  //Primero identificamos el tipo de notificacion
+  console.log('Empieza notificacion')
+  let finalContent = ''
+  if(type===1){
+    finalContent+= 'Se agrego un nuevo elemento de tipo '
+  }
+  if(type===2){
+    finalContent+= 'Se ha modificado el elemento de tipo '
+  }
+  if(type===3){
+    finalContent+= 'Se eliminado el elemento de tipo '
+  }
+  //Segundo identificamos el tipo
+  if(itemType===1){
+    console.log('Notificando operacion sobre indicador...')
+    const item = await IndicatorInstance.findById(itemID).populate('Indicator').populate('gadID')
+    finalContent+=`Indicadaor ${item.indicatorID.quadrant}.${item.indicatorID.number} ${item.indicatorID.name} del periodo ${item.year}`
+    const admin = await User.find({ gadID:item.gadID._id,rol:ROL_ADMIN })
+    for (const user of admin) {
+      const newNotify = new Notify({
+        from: from,
+        sendTo: user,
+        content: finalContent,
+        type: type,
+        state: 1,
+        date: new Date(),
+        itemID: itemID,
+        itemType: 1
+      })
+      console.log(newNotify)
+      await newNotify.save()
+      console.log('Notificacion enviada')
+      console.log(finalContent)
+    }
+  }
+  if(itemType===2){
+    console.log('Notificando operacion sobre subindicador...')
+    const item = await Subindicator.findById(itemID).populate({ path:'indicadorID',populate:[{ path:'gadID' },{ path:'period' }] })
+    const indicadorID = item.indicadorID
+    //console.log(indicadorID.indicatorID)
+    const indicatorCatalog = await Indicator.findById(indicadorID.indicatorID)
+    //console.log('indicador:',indicatorCatalog)
+    finalContent+=`Subindicador ${item.name} en el indicador ${indicatorCatalog.name} periodo ${indicadorID.year}  `
+    const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN })
+    for (const user of admin) {
+      const newNotify = new Notify({
+        from: from,
+        sendTo: user,
+        content: finalContent,
+        type: type,
+        state: 1,
+        date: new Date(),
+        itemID: itemID,
+        itemType: 2
+      })
+      console.log(newNotify)
+      await newNotify.save()
+      console.log('Notificacion enviada')
+    }
+  }
+  if(itemType===3){
+    console.log('Notificando operacion sobre evidencia...')
+    const item = await Evidence.findById(itemID).populate('subIndicatorID')
+    finalContent+=`Evidencia ${item.name} del subindicador ${item.subIndicatorID.name} `
+    const indicadorID = await IndicatorInstance.findById(item.subIndicatorID.indicadorID)
+    finalContent+=`(${itemID})`
+    //verificar si esta calificada
+    if(item.verified){
+      //Verificar si es por calificacion
+      if(from===item.qualificationBy){
+        const user = await User.findById(item.qualificationBy)
+        finalContent=`Se ha calificado la evidencia ${item.name} por el usuario ${user.name}`
+        const newNotify = new Notify({
+          from: from,
+          sendTo: item.author,
+          content: finalContent,
+          type: type,
+          state: 1,
+          date: new Date(),
+          itemID: itemID,
+          itemType: 3
+        })
+        console.log(newNotify)
+        await newNotify.save()
+      }else{
+        const newNotify = new Notify({
+          from: from,
+          sendTo: item.qualificationBy,
+          content: finalContent,
+          type: type,
+          state: 1,
+          date: new Date(),
+          itemID: itemID,
+          itemType: 3
+        })
+        console.log(newNotify)
+        await newNotify.save()
+      }
+    }else{
+      const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN })
+      for (const user of admin) {
+        const newNotify = new Notify({
+          from: from,
+          sendTo: user,
+          content: finalContent,
+          type: type,
+          state: 1,
+          date: new Date(),
+          itemID: itemID,
+          itemType: 3
+        })
+        console.log(newNotify)
+        await newNotify.save()
+        console.log('Notificacion enviada')
+      }
+    }
+
+  }
+  console.log(finalContent)
+}
 module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
   getTokenFrom,
   updateSubindicator,
-  updateSubindicator2
+  updateSubindicator2,
+  notify
 }
