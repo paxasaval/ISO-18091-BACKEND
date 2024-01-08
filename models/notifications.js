@@ -34,7 +34,7 @@ const notificationSchema = new mongoose.Schema({
   state:{
     type:Number,
     required:true
-  },
+  }
 })
 notificationSchema.set('toJSON',{
   transform:(doc,returnObj) => {
