@@ -22,21 +22,21 @@ notifyRouter.get('/allMyNotify',async(req,res,next) => {
     next(error)
   }
 })
-notifyRouter.get('/numOfUnreadNotify',async(req,res,next)=>{
+notifyRouter.get('/numOfUnreadNotify',async(req,res,next) => {
   try {
     const { userID } = req.query
     const user = new mongoose.Types.ObjectId(userID)
-    const notifications = await Notify.countDocuments({sendTo:user,state:1})
+    const notifications = await Notify.countDocuments({ sendTo:user,state:1 })
     res.json(notifications)
   } catch (error) {
     next(error)
   }
 })
-notifyRouter.get('/unreadNotify',async(req,res,next)=>{
+notifyRouter.get('/unreadNotify',async(req,res,next) => {
   try {
     const { userID } = req.query
     const user = new mongoose.Types.ObjectId(userID)
-    const notifications = await Notify.find({sendTo:user,state:1})
+    const notifications = await Notify.find({ sendTo:user,state:1 })
     res.json(notifications)
   } catch (error) {
     next(error)
@@ -79,19 +79,19 @@ notifyRouter.delete('/:id',(req,res,next) => {
     })
     .catch(error => next(error))
 })
-notifyRouter.put('/checkNotify',async(req,res,next)=>{
+notifyRouter.put('/checkNotify',async(req,res,next) => {
   try {
     const id = req.body.id
-    const notificationUpdate = await Notify.findByIdAndUpdate(id,{state:2},{new:true})
+    const notificationUpdate = await Notify.findByIdAndUpdate(id,{ state:2 },{ new:true })
     res.json(notificationUpdate)
   } catch (error) {
     next(error)
   }
 })
-notifyRouter.put('/uncheckNotify',async(req,res,next)=>{
+notifyRouter.put('/uncheckNotify',async(req,res,next) => {
   try {
     const id = req.body.id
-    const notificationUpdate = await Notify.findByIdAndUpdate(id,{state:1},{new:true})
+    const notificationUpdate = await Notify.findByIdAndUpdate(id,{ state:1 },{ new:true })
     res.json(notificationUpdate)
   } catch (error) {
     next(error)
