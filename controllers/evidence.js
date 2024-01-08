@@ -1,13 +1,17 @@
+/* eslint-disable no-unused-vars */
 const evidenveRouter = require('express').Router()
 const Evidenve = require('../models/evidence')
 //const { default: mongoose } = require('mongoose')
 const Subindicator = require('../models/subindicator')
 const jwt = require('jsonwebtoken')
-const { getTokenFrom, updateSubindicator, updateSubindicator2 } = require('../utils/middleware')
+const { getTokenFrom, notify, updateSubindicator, updateSubindicator2 } = require('../utils/middleware')
 const Rol = require('../models/rol')
 const IndicatorInstance = require('../models/indicatorInstance')
 const  mongoose  = require('mongoose')
 const Commit = require('../models/commit')
+const Rubric = require('../models/rubric')
+
+const Characteristic = require('../models/characteristic')
 const ROL_ADMIN = process.env.ROL_ADMIN
 //const ROL_REPONSIBLE = process.env.ROL_REPONSIBLE
 const ROL_USER = process.env.ROL_USER
@@ -33,7 +37,6 @@ evidenveRouter.get('/subindicatorID/:id', async (req,res,next) => {
   }
 })
 
-
 evidenveRouter.get('/:id',async(req,res,next) => {
   try {
     const id = req.params.id
@@ -42,6 +45,7 @@ evidenveRouter.get('/:id',async(req,res,next) => {
       .populate('characteristicID')
       .populate('subIndicatorID')
       .populate('commits')
+      .populate('rubric')
     if(evidence){
       return res.status(200).json(evidence)
     }else{
@@ -67,7 +71,7 @@ evidenveRouter.delete('/:id',async (req,res,next) => {
       if(!rol){
         return res.status(401).json({ error: 'rol missing or invalid' })
       }else if(rol.name!==ROL_ADMIN){
-        console.log('rol',rol.name)
+        //console.log('rol',rol.name)
         return res.status(401).json({ error: 'unauthorized rol' })
       }
       //end-authorization
@@ -87,12 +91,12 @@ evidenveRouter.delete('/:id',async (req,res,next) => {
       //console.log(subindicatorBD)
       //const x = subindicatorBD.evidences.findIndex(evi => evi.equals(evidenceDelete._id))
       //console.log(x)
-      console.log('1:',subindicatorBD.evidences.length)
+      //console.log('1:',subindicatorBD.evidences.length)
       //subindicatorBD.evidences.splice(x,1)
       const subindicatorUpdated = autoQualifySubindicator(subindicatorBD)
       subindicatorUpdated.lastUpdate=new Date()
       subindicatorUpdated.lastUpdateBy = user
-      console.log('2:',subindicatorUpdated.evidences.length)
+      //console.log('2:',subindicatorUpdated.evidences.length)
       await Subindicator.findByIdAndUpdate(subindicatorUpdated.id,subindicatorUpdated,{ new:true })
 
       //console.log(subindicatorUpdated)
@@ -132,6 +136,9 @@ evidenveRouter.post('/',async (req,res,next) => {
       if(body.name===undefined){
         res.status(400).json({ error:'name missing' })
       }
+      const characteristicBD = await Characteristic.findById(body.characteristicID).populate('valuation')
+      const valuation = characteristicBD.valuation
+      //console.log(valuation)
       const evidenve = new Evidenve({
         characteristicID:body.characteristicID,
         subIndicatorID:body.subIndicatorID,
@@ -141,15 +148,20 @@ evidenveRouter.post('/',async (req,res,next) => {
         content:body.content || [],
         state:true,
         verified:body.verified || false,
-        qualification:body.qualification||0,
+        qualification:body.qualification||1,
         author: new mongoose.Types.ObjectId(user),
         commits:[]
       })
+      if(body.extras){
+        evidenve.extras=body.extras
+      }
+      //console.log(req)
       const savedEvidence = await evidenve.save()//tenemos lal evidencia guardada
-      const updatedSubindicator = await updateSubindicator(savedEvidence,req)//actualizamos el subindidicador
+      await notify(1,user,3,savedEvidence.id,req)
 
+      const updatedSubindicator = await updateSubindicator(savedEvidence,req)//actualizamos el subindidicador
       //const updatedSubindicator = await updateSubindicator(savedEvidence)//actualizamos el subindidicador
-      console.log(updatedSubindicator)
+      //console.log('actualizao',updatedSubindicator)
       const savedAndFormattedevidenve = savedEvidence.toJSON()
       res.json(savedAndFormattedevidenve)
     }
@@ -184,16 +196,44 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
       if(!id && !body.qualification){
         return res.status(400).json({ error:'missing id or qualification' })
       }
-      console.log('asdasd')
-
-      let updateEvidenve = {
-        verified:true,
+      //console.log('asdasd')
+      let evidenveUpdating = {
+        verified:body.verified|false,
         qualification:body.qualification,
         qualificationBy:user,
         qualificationDate:new Date(),
+        commits:[]
       }
-      console.log('asdasd')
+      let rubric
       const evidenceCurrent = await Evidenve.findById(id)
+      if(evidenceCurrent.rubric.length===0){
+        console.log('no hay rubrica')
+        rubric = await Promise.all(body.rubric.map(async(r) => {
+          const newRubric = new Rubric({
+            valuation: new mongoose.Types.ObjectId(r.valuation),
+            qualification: r.qualification,
+            evidence:evidenceCurrent._id
+          })
+          const rSave = await newRubric.save()
+          return rSave._id
+        }))
+      }else{
+        console.log('si hay rubrica')
+        const array =  body.rubric
+        for (const i of array) {
+          const rubricDB = await Rubric.findOne({ valuation: i.valuation, evidence: evidenceCurrent._id })
+          //console.log('r', rubricDB)
+          const updateRubric = await Rubric.findByIdAndUpdate(rubricDB._id, { qualification: i.qualification }, { new: true })
+          //console.log('u', updateRubric)
+        }
+
+      }
+      evidenceCurrent.rubric=rubric
+      //console.log('asdasd')
+      evidenceCurrent.qualification=body.qualification
+      evidenceCurrent.qualificationBy=body.user
+      evidenceCurrent.verified=body.verified|false
+      evidenceCurrent.qualificationDate=new Date()
       if(body.commit){
         const comit = new Commit({
           autor:user,
@@ -202,15 +242,21 @@ evidenveRouter.put('/qualify/:id',async(req,res,next) => {
           lastUpdate:new Date()
         })
         const commitSave = await comit.save()
-        const newCommit = evidenceCurrent.commits.concat(commitSave._id)
-        console.log('comentario creado:',newCommit)
-        updateEvidenve.commits=newCommit
+        const arrayUpdate = evidenceCurrent.commits.concat(commitSave._id)
+        console.log('comentarios actualizaos',arrayUpdate)
+        evidenceCurrent.commits = arrayUpdate
+        console.log('califcacion:',evidenceCurrent.qualification)
       }
-      console.log('evidencia',updateEvidenve)
-      const updateEvidence = await Evidenve.findByIdAndUpdate(id,updateEvidenve,{ new:true })
-      updateSubindicator2(updateEvidence)
-      const updateSubindicator = await Subindicator.findByIdAndUpdate(updateEvidence.subIndicatorID,{ lastUpdate:new Date() },{ new:true })
-      console.log(updateSubindicator)
+      //console.log('evidencia',updateEvidenve)
+      const updateEvidence = await Evidenve.findByIdAndUpdate(id,evidenceCurrent,{ new:true })
+      await notify(2,user,3,updateEvidence.id,req)
+
+      const indi = await updateSubindicator2(updateEvidence,req)
+      if(indi){
+        console.log('indicator updated')
+      }
+      const updateSub = await Subindicator.findByIdAndUpdate(updateEvidence.subIndicatorID,{ lastUpdate:new Date() },{ new:true })
+      console.log(updateSub,'actualizado')
       return res.json(updateEvidence)
     }
   } catch (error) {

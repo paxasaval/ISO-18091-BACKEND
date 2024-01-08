@@ -17,11 +17,14 @@ const rolRouter = require('./controllers/rol')
 const userRouter = require('./controllers/user')
 const commitRouter = require('./controllers/commit')
 const loginRouter = require('./controllers/login')
+const notifyRouter = require('./controllers/notification')
+
 
 //Utils
 const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 const mongoose = require('mongoose')
+const valuationRouter = require('./controllers/valuation')
 
 logger.info('conecting to', config.MONGODB_URI)
 
@@ -55,11 +58,13 @@ app.use('/api/users', userRouter)
 app.use('/api/rols', rolRouter)
 app.use('/api/type', typeRouter)
 app.use('/api/characteristics', characteristicRouter)
+app.use('/api/valuation', valuationRouter)
 app.use('/api/subIndicators', subIndicatorRouter)
 app.use('/api/indicatorsInstance', indicatorInstanceRouter)
 app.use('/api/evidences', evidenveRouter)
 app.use('/api/commits', commitRouter)
 app.use('/api/login', loginRouter)
+app.use('/api/notifications',notifyRouter)
 
 //
 app.use(middleware.unknownEndpoint)

@@ -49,7 +49,7 @@ userRouter.post('/signUp', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(body.password, saltRounds)
     const tenantID = req.header('tenant')
     if (tenantID === undefined) {
-      console.log(tenantID)
+      //console.log(tenantID)
       return res.status(400).json({ error: 'Need tenantID by workspace' })
     }
     const rol = await Rol.findById(body.rol)
@@ -66,7 +66,7 @@ userRouter.post('/signUp', async (req, res, next) => {
     const savedUser = await user.save()
     res.json(savedUser)
   } catch (error) {
-    console.log(error)
+    //console.log(error)
     next(error)
   }
 })
@@ -104,7 +104,7 @@ userRouter.get('/:id', (req, res, next) => {
 
 userRouter.delete('/:id', (req, res, next) => {
   const id = req.params.id
-  console.log('borrando1')
+  //console.log('borrando1')
   User.findByIdAndDelete(id)
     .then(() => {
       res.status(204).end()
@@ -120,7 +120,7 @@ userRouter.put('/:id', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(body.password, saltRounds)
     const tenantID = req.header('tenant')
     if (tenantID === undefined) {
-      console.log(tenantID)
+      //console.log(tenantID)
       return res.status(400).json({ error: 'Need tenantID by workspace' })
     }
     const user = {

@@ -1,13 +1,9 @@
 const mongoose = require('mongoose')
 
 const notificationSchema = new mongoose.Schema({
-  title: {
-    type: String,
+  type: {
+    type: Number,
     requred: true,
-  },
-  description:{
-    type:String,
-    requred:true
   },
   from:{
     type:mongoose.Schema.Types.ObjectId,
@@ -19,28 +15,26 @@ const notificationSchema = new mongoose.Schema({
     ref:'User',
     required:false
   },
-  gad:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:'Gad',
+  content:{
+    type:String,
+    requred:true
+  },
+  itemType:{
+    type:Number,
+    requred:true
+  },
+  itemID:{
+    type:String,
     required:false
   },
   date:{
     type:Date,
     requred:true
   },
-  open:{
-    type:Boolean,
+  state:{
+    type:Number,
     required:true
-  },
-  link:{
-    type:String,
-    required:false
-  },
-  subindicatorID:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:'SubIndicator',
-    required:false
-  },
+  }
 })
 notificationSchema.set('toJSON',{
   transform:(doc,returnObj) => {

@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
 const subIndicatorRouter = require('express').Router()
 const { default: mongoose } = require('mongoose')
 const SubIndicator = require('../models/subindicator')
 const jwt = require('jsonwebtoken')
 const IndicatorInstance = require('../models/indicatorInstance')
-const { getTokenFrom } = require('../utils/middleware')
+const { getTokenFrom, notify } = require('../utils/middleware')
 const Rol = require('../models/rol')
 
 const ROL_USER = process.env.ROL_USER
@@ -285,7 +286,7 @@ subIndicatorRouter.get('/indicator/:id/subindicatorsSpecific',
           },
         },
       ])
-      console.log(data)
+      //console.log(data)
 
       if (data[0].results.length === 0) {
         return res.status(204).json({ message: 'no subindcators specific' })
@@ -363,7 +364,6 @@ subIndicatorRouter.get('/:id', (req, res, next) => {
     })
     .catch((error) => next(error))
 })
-
 subIndicatorRouter.delete('/:id', (req, res, next) => {
   const id = req.params.id
   SubIndicator.findByIdAndDelete(id)
@@ -411,7 +411,7 @@ subIndicatorRouter.post('/', async (req, res, next) => {
       indicator,
       { new: true }
     )
-    console.log('asdsdas', indicatorUpdated)
+    //console.log('asdsdas', indicatorUpdated)
     res.json(savedAndFormattedSubIndicator)
   } catch (error) {
     next(error)
@@ -477,7 +477,38 @@ subIndicatorRouter.post('/newSubindicator', async (req, res, next) => {
       indicator,
       { new: true }
     )
-    console.log('fgg', indicatorUpdated)
+    //console.log('fgg', indicatorUpdated)
+    await notify(1,user,2,savedSubIndicator.id,req)
+    console.log('notificacion enviada')
+    res.json(savedAndFormattedSubIndicator)
+  } catch (error) {
+    next(error)
+  }
+})
+subIndicatorRouter.put('/addInfo', async (req,res,next) => {
+  try {
+    //Authorizaction
+    const token = getTokenFrom(req)
+    const decodedToken = jwt.verify(token, process.env.SECRET)
+    if (!token || !decodedToken) {
+      return res.status(401).json({ error: 'token missing or invalid' })
+    } else {
+      const rolID = decodedToken.rol
+      const rol = await Rol.findById(rolID)
+      if (!rol) {
+        return res.status(401).json({ error: 'rol missing or invalid' })
+      } else if (rol.name === ROL_USER) {
+        return res.status(401).json({ error: 'unauthorized rol' })
+      }
+    }
+    //end-authorization
+    const id = req.query.id
+    const subindicatorBD = await SubIndicator.findById(id)
+    const extras = req.body.extraInfo
+    subindicatorBD.extraInfo=extras
+
+    const savedAndFormattedSubIndicator = await SubIndicator.findByIdAndUpdate(id,subindicatorBD,{ new:true })
+    //console.log('fgg', indicatorUpdated)
     res.json(savedAndFormattedSubIndicator)
   } catch (error) {
     next(error)

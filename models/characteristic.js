@@ -5,6 +5,11 @@ const characteristicSchema = new mongoose.Schema({
     type:String,
     required:true
   },
+  type:{
+    type:Number,
+    required:false,
+    default:1
+  },
   group:{
     type:String,
     required:true
@@ -14,6 +19,10 @@ const characteristicSchema = new mongoose.Schema({
     required:true
   },
   help:{
+    type:String,
+    required:false
+  },
+  format:{
     type:String,
     required:false
   },
@@ -41,6 +50,16 @@ const characteristicSchema = new mongoose.Schema({
     type:String,
     required:false
   }],
+  valuation:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Valuation',
+    required:true
+  }],
+  extras:{
+    type:mongoose.Schema.Types.Mixed,
+    required:false,
+    default:{}
+  },
   allowed_formats:[{
     type:String,
     required:true

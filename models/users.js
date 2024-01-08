@@ -18,6 +18,7 @@ const usersSchema = new mongoose.Schema({
   password:{
     type:String,
     required:true,
+    select:true
   },
   rol:{
     type:mongoose.Schema.Types.ObjectId,
@@ -41,8 +42,8 @@ const usersSchema = new mongoose.Schema({
     ref:'Gad',
     required:true
   }
-})
 
+})
 usersSchema.plugin(uniqueValidator)
 
 usersSchema.set('toJSON',{

@@ -21,6 +21,11 @@ const typeSchema = new mongoose.Schema({
     type:Boolean,
     required:true
   },
+  extraInfo:{
+    type:mongoose.Schema.Types.Mixed,
+    required:false,
+    default:{}
+  },
   characteristics:[{
     type:mongoose.Schema.Types.ObjectId,
     ref:'Characteristic'

@@ -50,7 +50,6 @@ indicatorInstanceRouter.get('/byIndicatorIDAndPeriod',async (req,res,next) => {
     const indicatorID = new mongoose.Types.ObjectId(req.query.indicatorID)
     const period = new mongoose.Types.ObjectId(req.query.period)
     const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))
-
     const indicatorInstance = await IndicatorInstance
       .findOne({
         indicatorID:indicatorID,
@@ -69,6 +68,7 @@ indicatorInstanceRouter.get('/byIndicatorIDAndPeriod',async (req,res,next) => {
           { path:'evidences' }
         ]
       })
+    //console.log(indicatorInstance)
     res.status(200).json(indicatorInstance)
   } catch (error) {
     next(error)
