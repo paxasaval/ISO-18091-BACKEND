@@ -82,7 +82,10 @@ userRouter.post('/password', async (req, res, next) => {
         ? false
         : await bcrypt.compare(body.password, user.password)
     if(passwordCorrect){
-      return res.status(200).json({ key: true })
+      return res.status(200).json(true)
+    }else{
+      return res.status(200).json(false)
+
     }
   } catch (error) {
     next(error)
@@ -111,7 +114,23 @@ userRouter.delete('/:id', (req, res, next) => {
     })
     .catch((error) => next(error))
 })
-
+userRouter.put('/newPassword', async (req, res, next) => {
+  try {
+    const id = req.params.id
+    const body = req.body
+    const saltRounds = 10
+    const passwordHash = await bcrypt.hash(body.password, saltRounds)
+    const tenantID = req.header('tenant')
+    if (tenantID === undefined) {
+      //console.log(tenantID)
+      return res.status(400).json({ error: 'Need tenantID by workspace' })
+    }
+    const updateUser = await User.findByIdAndUpdate(id, {password:passwordHash}, { new: true })
+    res.json(updateUser)
+  } catch (error) {
+    next(error)
+  }
+})
 userRouter.put('/:id', async (req, res, next) => {
   try {
     const id = req.params.id
