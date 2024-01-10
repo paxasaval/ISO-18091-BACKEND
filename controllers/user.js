@@ -125,7 +125,7 @@ userRouter.put('/newPassword', async (req, res, next) => {
       //console.log(tenantID)
       return res.status(400).json({ error: 'Need tenantID by workspace' })
     }
-    const updateUser = await User.findByIdAndUpdate(id, {password:passwordHash}, { new: true })
+    const updateUser = await User.findByIdAndUpdate(id, { password:passwordHash }, { new: true })
     res.json(updateUser)
   } catch (error) {
     next(error)
