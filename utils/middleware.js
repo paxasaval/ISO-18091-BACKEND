@@ -6,10 +6,10 @@ const Evidence = require('../models/evidence')
 const gad = require('../models/gad')
 const User = require('../models/users')
 const Notify = require('../models/notifications')
-const { ROL_ADMIN } = require('../utils/config')
+const { ROL_ADMIN_KEY } = require('../utils/config')
 
 const requestLogger = (request, response, next) => {
-  logger.info('Method:', request.method)
+  logger.info('Method:', request.method)  
   logger.info('Path:  ', request.path)
   logger.info('Body:  ', request.body)
   logger.info('Header:',request.header('tenant'))
@@ -254,7 +254,7 @@ const notify = async(type,from,itemType,itemID,req) => {
     console.log('Notificando operacion sobre indicador...')
     const item = await IndicatorInstance.findById(itemID).populate('Indicator').populate('gadID')
     finalContent+=`Indicadaor ${item.indicatorID.quadrant}.${item.indicatorID.number} ${item.indicatorID.name} del periodo ${item.year}`
-    const admin = await User.find({ gadID:item.gadID._id,rol:ROL_ADMIN })
+    const admin = await User.find({ gadID:item.gadID._id,rol:ROL_ADMIN_KEY })
     for (const user of admin) {
       const newNotify = new Notify({
         from: from,
@@ -280,7 +280,7 @@ const notify = async(type,from,itemType,itemID,req) => {
     const indicatorCatalog = await Indicator.findById(indicadorID.indicatorID)
     //console.log('indicador:',indicatorCatalog)
     finalContent+=`Subindicador ${item.name} en el indicador ${indicatorCatalog.name} periodo ${indicadorID.year}  `
-    const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN })
+    const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN_KEY })
     for (const user of admin) {
       const newNotify = new Notify({
         from: from,
@@ -336,7 +336,7 @@ const notify = async(type,from,itemType,itemID,req) => {
         await newNotify.save()
       }
     }else{
-      const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN })
+      const admin = await User.find({ gadID:indicadorID.gadID._id,rol:ROL_ADMIN_KEY })
       for (const user of admin) {
         const newNotify = new Notify({
           from: from,
