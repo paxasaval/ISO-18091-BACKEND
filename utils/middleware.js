@@ -292,7 +292,7 @@ const notify = async(type,from,itemType,itemID,req) => {
         itemID: itemID,
         itemType: 2
       })
-      console.log(newNotify)
+      console.log("notificacion:",newNotify)
       await newNotify.save()
       console.log('Notificacion enviada')
     }
