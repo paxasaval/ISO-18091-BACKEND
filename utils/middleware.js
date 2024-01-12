@@ -304,9 +304,12 @@ const notify = async(type,from,itemType,itemID,req) => {
     const indicadorID = await IndicatorInstance.findById(item.subIndicatorID.indicadorID)
     finalContent+=`(${itemID})`
     //verificar si esta calificada
-    if(item.verified){
+    //console.log(item) 
+    if(item.qualificationBy){
+      console.log('evidencia ya calificada')
       //Verificar si es por calificacion
-      if(from===item.qualificationBy){
+      if(from===item.qualificationBy.toString()){
+        console.log('calificando...')
         const user = await User.findById(item.qualificationBy)
         finalContent=`Se ha calificado la evidencia ${item.name} por el usuario ${user.name}`
         const newNotify = new Notify({
