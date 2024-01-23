@@ -43,6 +43,7 @@ app.use(
       'http://localhost:4200',
       'https://iso18091storage.web.app',
       'https://transformaciondigitalgobiernosabiertos.azurewebsites.net',
+      'https://iso18091-test.web.app'
     ],
   })
 )
