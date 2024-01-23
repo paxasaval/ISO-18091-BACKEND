@@ -16,10 +16,12 @@ const Type = require('../models/type')
 periodRouter.get('/', async (req, res, next) => {
   try {
     const tenant = req.header('tenant')
+    const tenantID = new mongoose.Types.ObjectId(req.header('tenant'))//tenantID
+
     if(!tenant){
       return res.status(400).json({ erro:'tenat is nesesary' })
     }
-    const period = await Period.find({})
+    const period = await Period.find({gad:tenantID})
     //console.log('p',period)
     return res.status(200).json(period)
   } catch (error) {
@@ -174,11 +176,5 @@ periodRouter.delete('/:id',async(req,res,next) => {
     next(error)
   }
 })
-
-
-
-
-
-
 
 module.exports =  periodRouter
