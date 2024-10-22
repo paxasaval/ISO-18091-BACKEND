@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "description": "Backend plataforma ISO 18091",
   "main": "index.js",
   "scripts": {
