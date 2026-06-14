@@ -1,3 +1,11 @@
 node_modules
 .env
 .Backup
+dist
+*.tsbuildinfo
+.claude
+.agents
+Backup
+backup_2026-06-13.json
+backup_export.js
+backup_restore.js
