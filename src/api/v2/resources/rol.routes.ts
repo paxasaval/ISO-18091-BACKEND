@@ -1,4 +1,9 @@
-// Recurso REST /api/v2/rol sobre rolRepository.
+// Recurso REST /api/v2/rol sobre la capa de datos v2
+// (src/v2/repositories/rol.repository -> coleccion v2_rols).
+//
+// El modelo v2 anade code (identificador estable), slug, order y permissions[].
+// permissions se gestiona en Tema 3; aqui el campo ya existe y se acepta como
+// opcional. La respuesta incluye code/slug/order/permissions (via toJSON).
 //
 // Endpoints:
 //   GET    /            -> lista (paginacion ?page=&size= con meta)
@@ -9,7 +14,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import rolRepository from '../../../repositories/rol.repository'
+import rolRepository from '../../../v2/repositories/rol.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
@@ -28,7 +33,11 @@ const listQuerySchema = paginationQuerySchema
 
 const createBodySchema = z.object({
   name: z.string().min(1),
-  description: z.string().min(1)
+  description: z.string().min(1),
+  code: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional(),
+  permissions: z.array(z.string()).optional()
 })
 
 // PUT = reemplazo completo del recurso (mismo schema que create).

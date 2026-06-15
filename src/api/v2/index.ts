@@ -12,6 +12,7 @@ import usersRouter from './resources/users.routes'
 import odsRouter from './resources/ods.routes'
 import typeRouter from './resources/type.routes'
 import rolRouter from './resources/rol.routes'
+import meRouter from './resources/me.routes'
 import commitRouter from './resources/commit.routes'
 import valuationRouter from './resources/valuation.routes'
 import notificationsRouter from './resources/notifications.routes'
@@ -31,8 +32,12 @@ const router = Router()
 router.use('/indicators', indicatorsRouter)
 router.use('/users', usersRouter)
 router.use('/ods', odsRouter)
+// Catalogo de tipos: ruta canonica /types (plural REST) + alias /type por
+// compatibilidad con consumidores existentes. Ambos montan el mismo router.
+router.use('/types', typeRouter)
 router.use('/type', typeRouter)
 router.use('/rol', rolRouter)
+router.use('/me', meRouter)
 router.use('/commit', commitRouter)
 router.use('/valuation', valuationRouter)
 router.use('/notifications', notificationsRouter)

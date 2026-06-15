@@ -1,16 +1,21 @@
-// Recurso REST /api/v2/type sobre typeRepository.
+// Recurso REST /api/v2/types (alias /api/v2/type) sobre la capa de datos v2
+// (src/v2/repositories/type.repository -> coleccion v2_types).
+//
+// Catalogo navegable de tipos. El FE arma rutas desde este catalogo usando
+// id/slug (resuelve HC#1/#2). Cada tipo expone slug y order.
 //
 // Endpoints:
-//   GET    /            -> lista con characteristics pobladas
-//                          (paginacion ?page=&size= con meta)
-//   GET    /:id         -> 200 (characteristics pobladas) | 404 NOT_FOUND
-//   POST   /            -> 201 (valida body)
-//   PUT    /:id         -> 200 (valida body) | 404 NOT_FOUND
-//   DELETE /:id         -> 204 | 404 NOT_FOUND
+//   GET    /?mandatory=true|false -> lista filtrada por mandatory, ORDENADA por
+//                                    order asc (luego name), characteristics
+//                                    pobladas. Paginacion ?page=&size= con meta.
+//   GET    /:id                   -> 200 (characteristics pobladas) | 404
+//   POST   /                      -> 201 (valida body, incluye slug/order)
+//   PUT    /:id                   -> 200 (valida body) | 404 NOT_FOUND
+//   DELETE /:id                   -> 204 | 404 NOT_FOUND
 
 import { Router } from 'express'
 import { z } from 'zod'
-import typeRepository from '../../../repositories/type.repository'
+import typeRepository from '../../../v2/repositories/type.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
@@ -20,13 +25,22 @@ import { validate } from '../validate'
 
 const router = Router()
 
+// Orden estable del catalogo: por order asc, desempate por name.
+const CATALOG_SORT: Record<string, 1 | -1> = { order: 1, name: 1 }
+
 // --- Schemas ---
 
 const idParamSchema = z.object({
   id: z.string()
 })
 
-const listQuerySchema = paginationQuerySchema
+// ?mandatory=true|false (coercion desde string de query) + paginacion opcional.
+const listQuerySchema = paginationQuerySchema.extend({
+  mandatory: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional()
+})
 
 const createBodySchema = z.object({
   name: z.string().min(1),
@@ -35,7 +49,9 @@ const createBodySchema = z.object({
   green: z.string().min(1),
   mandatory: z.boolean(),
   extraInfo: z.unknown().optional(),
-  characteristics: z.array(objectId).optional()
+  characteristics: z.array(objectId).optional(),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional()
 })
 
 // PUT = reemplazo completo del recurso (mismo schema que create).
@@ -48,21 +64,21 @@ router.get(
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
+    const filter =
+      query.mandatory === undefined ? {} : { mandatory: query.mandatory }
+    const findOptions = { populate: 'characteristics', sort: CATALOG_SORT }
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
-      const items = await typeRepository.findAll(
-        {},
-        { populate: 'characteristics' }
-      )
+      const items = await typeRepository.findAll(filter, findOptions)
       return ok(res, items)
     }
 
     const { items, total } = await typeRepository.findPage(
-      {},
+      filter,
       pg.page,
       pg.size,
-      { populate: 'characteristics' }
+      findOptions
     )
     return ok(res, items, {
       pagination: buildPaginationMeta(pg.page, pg.size, total)
@@ -74,7 +90,9 @@ router.get(
   '/:id',
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
-    const item = await typeRepository.findByIdWithCharacteristics(req.params.id)
+    const item = await typeRepository.findById(req.params.id, {
+      populate: 'characteristics'
+    })
     if (!item) {
       throw new NotFoundError('type not found')
     }
