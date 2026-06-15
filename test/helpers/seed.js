@@ -17,6 +17,9 @@ const Evidence = require('../../models/evidence')
 const Valuation = require('../../models/valuation')
 const Commit = require('../../models/commit')
 const Notify = require('../../models/notifications')
+const News = require('../../models/news')
+const Rubric = require('../../models/rubric')
+const Sponsor = require('../../models/sponsors')
 
 // Devuelve el _id si recibe un documento, o el valor tal cual si ya es un id.
 const idOf = (docOrId) => (docOrId && docOrId._id ? docOrId._id : docOrId)
@@ -237,6 +240,46 @@ const createNotify = (overrides = {}) =>
     ...overrides
   }).save()
 
+const createNews = async (overrides = {}) => {
+  const { author: authOv, gad: gadOv, ...rest } = overrides
+  const author = authOv || (await createUser()).user._id
+  const gad = gadOv || (await createGad())
+  return new News({
+    image: 'news.png',
+    title: 'Noticia Test',
+    description: 'descripcion noticia',
+    tag: ['tag1'],
+    ...rest,
+    author: idOf(author),
+    gad: idOf(gad)
+  }).save()
+}
+
+const createRubric = async (overrides = {}) => {
+  const { valuation: valOv, evidence: evOv, ...rest } = overrides
+  const valuation = valOv || (await createValuation())
+  const evidence = evOv || (await createEvidence())
+  return new Rubric({
+    qualification: 1,
+    ...rest,
+    valuation: idOf(valuation),
+    evidence: idOf(evidence)
+  }).save()
+}
+
+const createSponsor = async (overrides = {}) => {
+  const { gad: gadOv, ...rest } = overrides
+  const gad = gadOv || (await createGad())
+  return new Sponsor({
+    name: 'Sponsor Test',
+    description: 'descripcion sponsor',
+    image: 'sponsor.png',
+    state: true,
+    ...rest,
+    gad: idOf(gad)
+  }).save()
+}
+
 module.exports = {
   signToken,
   createRol,
@@ -252,5 +295,8 @@ module.exports = {
   createEvidence,
   createValuation,
   createCommit,
-  createNotify
+  createNotify,
+  createNews,
+  createRubric,
+  createSponsor
 }
