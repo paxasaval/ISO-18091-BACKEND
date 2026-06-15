@@ -18,6 +18,12 @@ import notificationsRouter from './resources/notifications.routes'
 import newsRouter from './resources/news.routes'
 import rubricRouter from './resources/rubric.routes'
 import sponsorsRouter from './resources/sponsors.routes'
+import gadRouter from './resources/gad.routes'
+import periodRouter from './resources/period.routes'
+import characteristicRouter from './resources/characteristic.routes'
+import subindicatorRouter from './resources/subindicator.routes'
+import evidenceRouter from './resources/evidence.routes'
+import indicatorInstanceRouter from './resources/indicatorInstance.routes'
 import { errorHandler } from './error-handler'
 
 const router = Router()
@@ -33,6 +39,12 @@ router.use('/notifications', notificationsRouter)
 router.use('/news', newsRouter)
 router.use('/rubric', rubricRouter)
 router.use('/sponsors', sponsorsRouter)
+router.use('/gad', gadRouter)
+router.use('/periods', periodRouter)
+router.use('/characteristics', characteristicRouter)
+router.use('/subindicators', subindicatorRouter)
+router.use('/evidences', evidenceRouter)
+router.use('/indicator-instances', indicatorInstanceRouter)
 
 // Error handler de v2 AL FINAL: captura solo errores de este sub-router.
 router.use(errorHandler)
