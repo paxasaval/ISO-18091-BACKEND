@@ -4,6 +4,7 @@
 // SubIndicator.paginate(...) ademas de los aggregate complejos del controlador.
 import mongoose, { PipelineStage } from 'mongoose'
 import SubIndicator from '../../models/subindicator'
+import IndicatorInstance from '../../models/indicatorInstance'
 import BaseRepository, { ModelDocType } from './base.repository'
 
 type SubIndicatorDoc = ModelDocType<typeof SubIndicator>
@@ -126,6 +127,27 @@ export class SubIndicatorRepository extends BaseRepository<SubIndicatorDoc> {
         populate: [{ path: 'gadID' }, { path: 'period' }]
       }
     })
+  }
+
+  // POST / y POST /newSubindicator: guarda el subindicador y lo enlaza a la
+  // IndicatorInstance correspondiente (replica EXACTO el legacy
+  // controllers/subindicator.js: save -> findById(indicadorID) ->
+  // subindicators.concat(saved.id) -> findByIdAndUpdate). Devuelve el
+  // subindicador guardado (toJSON lo formatea en el controlador).
+  async createAndLinkToIndicator(data: Partial<SubIndicatorDoc>): Promise<SubIndicatorDoc> {
+    const subIndicator = new SubIndicator(data)
+    const savedSubIndicator = await subIndicator.save()
+    const indicator = (await IndicatorInstance.findById(
+      subIndicator.indicadorID
+    )) as unknown as { id: unknown, subindicators: unknown[] }
+    const indicatorID = indicator.id
+    indicator.subindicators = indicator.subindicators.concat(savedSubIndicator.id)
+    await IndicatorInstance.findByIdAndUpdate(
+      indicatorID as string,
+      indicator as Record<string, unknown>,
+      { new: true }
+    )
+    return savedSubIndicator
   }
 
   // GET /indicator/:id/generalSubindicators (typeID.mandatory === true)
