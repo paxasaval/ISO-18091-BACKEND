@@ -31,7 +31,8 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.3",
     "mongoose-paginate-v2": "^1.7.1",
-    "mongoose-unique-validator": "^4.0.0"
+    "mongoose-unique-validator": "^4.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

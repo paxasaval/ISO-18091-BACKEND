@@ -71,6 +71,26 @@ export class BaseRepository<T extends Document> {
     return query.exec()
   }
 
+  // Paginacion 1-indexada para /api/v2 (page>=1, size>=1). Devuelve la pagina de
+  // items y el total de documentos que cumplen el filtro. Metodo ADITIVO: no
+  // altera findAll ni el resto de operaciones usadas por v1.
+  async findPage(
+    filter: FilterQuery<T> = {},
+    page: number,
+    size: number,
+    options: FindOptions = {}
+  ): Promise<{ items: T[]; total: number }> {
+    const skip = (page - 1) * size
+    const query = this.applyOptions(this.model.find(filter), options)
+      .skip(skip)
+      .limit(size)
+    const [items, total] = await Promise.all([
+      options.lean ? query.lean<T[]>().exec() : query.exec(),
+      this.model.countDocuments(filter).exec()
+    ])
+    return { items, total }
+  }
+
   async findById(
     id: string,
     options: FindOptions = {}

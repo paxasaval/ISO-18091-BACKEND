@@ -3,32 +3,46 @@ import logger from './logger'
 
 export class AppError extends Error {
   public readonly statusCode: number
+  // Codigo de error legible para el envelope de /api/v2 ({ error: { code } }).
+  // Opcional para no alterar el uso de AppError en v1.
+  public readonly code?: string
+  // Detalles opcionales adjuntables al envelope (p.ej. issues de zod).
+  public readonly details?: unknown
 
-  constructor(message: string, statusCode = 500) {
+  constructor(message: string, statusCode = 500, code?: string, details?: unknown) {
     super(message)
     this.name = 'AppError'
     this.statusCode = statusCode
+    this.code = code
+    this.details = details
     Object.setPrototypeOf(this, new.target.prototype)
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = 'not found') {
-    super(message, 404)
+  constructor(message = 'not found', details?: unknown) {
+    super(message, 404, 'NOT_FOUND', details)
     this.name = 'NotFoundError'
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = 'unauthorized') {
-    super(message, 401)
+  constructor(message = 'unauthorized', details?: unknown) {
+    super(message, 401, 'UNAUTHORIZED', details)
     this.name = 'UnauthorizedError'
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'forbidden', details?: unknown) {
+    super(message, 403, 'FORBIDDEN', details)
+    this.name = 'ForbiddenError'
+  }
+}
+
 export class ValidationError extends AppError {
-  constructor(message = 'validation error') {
-    super(message, 400)
+  constructor(message = 'validation error', details?: unknown) {
+    super(message, 400, 'VALIDATION_ERROR', details)
     this.name = 'ValidationError'
   }
 }

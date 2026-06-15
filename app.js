@@ -22,6 +22,8 @@ const notifyRouter = require('./controllers/notification')
 //Utils
 const middleware = require('./utils/middleware')
 const valuationRouter = require('./controllers/valuation')
+//API v2 (capa nueva REST sobre los mismos repositorios/servicios)
+const v2Router = require('./src/api/v2')
 
 app.use(
   cors({
@@ -52,6 +54,9 @@ app.use('/api/evidences', evidenveRouter)
 app.use('/api/commits', commitRouter)
 app.use('/api/login', loginRouter)
 app.use('/api/notifications',notifyRouter)
+
+//API v2 (montada antes de los handlers globales; no afecta a v1)
+app.use('/api/v2', v2Router)
 
 //
 app.use(middleware.unknownEndpoint)
