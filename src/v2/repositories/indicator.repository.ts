@@ -8,6 +8,11 @@ export class IndicatorRepository extends BaseRepository<IndicatorDoc> {
   constructor() {
     super(Indicator)
   }
+
+  // GET /:id -> Indicator.findById(id).populate('ods')
+  async findByIdWithOds(id: string): Promise<IndicatorDoc | null> {
+    return this.findById(id, { populate: 'ods' })
+  }
 }
 
 export const indicatorRepository = new IndicatorRepository()

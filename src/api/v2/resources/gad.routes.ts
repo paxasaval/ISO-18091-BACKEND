@@ -15,7 +15,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import gadRepository from '../../../repositories/gad.repository'
+import gadRepository from '../../../v2/repositories/gad.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { authenticate, requireElevatedRole } from '../auth'
 import { asyncHandler } from '../async-handler'

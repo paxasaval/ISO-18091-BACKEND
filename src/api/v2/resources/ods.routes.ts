@@ -1,15 +1,19 @@
-// Recurso REST /api/v2/ods sobre odsRepository.
+// Recurso REST /api/v2/ods sobre la capa de datos v2
+// (src/v2/repositories/ods.repository -> coleccion v2_ods).
+//
+// Acepta slug/order (HC#5) y ORDENA los listados por order asc (luego number).
 //
 // Endpoints:
-//   GET    /            -> lista (paginacion ?page=&size= con meta)
+//   GET    /            -> lista ORDENADA por order asc (luego number);
+//                          paginacion ?page=&size= con meta
 //   GET    /:id         -> 200 | 404 NOT_FOUND
-//   POST   /            -> 201 (valida body)
+//   POST   /            -> 201 (valida body, incluye slug/order)
 //   PUT    /:id         -> 200 (valida body) | 404 NOT_FOUND
 //   DELETE /:id         -> 204 | 404 NOT_FOUND
 
 import { Router } from 'express'
 import { z } from 'zod'
-import odsRepository from '../../../repositories/ods.repository'
+import odsRepository from '../../../v2/repositories/ods.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
@@ -17,6 +21,9 @@ import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { validate } from '../validate'
 
 const router = Router()
+
+// Orden estable del catalogo: por order asc, desempate por number.
+const CATALOG_SORT: Record<string, 1 | -1> = { order: 1, number: 1 }
 
 // --- Schemas ---
 
@@ -29,7 +36,9 @@ const listQuerySchema = paginationQuerySchema
 const createBodySchema = z.object({
   number: z.number().int(),
   name: z.string().min(1),
-  img: z.string().min(1)
+  img: z.string().min(1),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional()
 })
 
 // PUT = reemplazo completo del recurso (mismo schema que create).
@@ -45,7 +54,7 @@ router.get(
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
-      const items = await odsRepository.findAll({}, { sort: 'number' })
+      const items = await odsRepository.findAll({}, { sort: CATALOG_SORT })
       return ok(res, items)
     }
 
@@ -53,7 +62,7 @@ router.get(
       {},
       pg.page,
       pg.size,
-      { sort: 'number' }
+      { sort: CATALOG_SORT }
     )
     return ok(res, items, {
       pagination: buildPaginationMeta(pg.page, pg.size, total)

@@ -17,7 +17,7 @@
 import { Request, Router } from 'express'
 import mongoose from 'mongoose'
 import { z } from 'zod'
-import periodRepository from '../../../repositories/period.repository'
+import periodRepository from '../../../v2/repositories/period.repository'
 import { NotFoundError, UnauthorizedError, ValidationError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { authenticate, requireElevatedRole } from '../auth'

@@ -1,8 +1,8 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
-const User = require('../../models/users')
+const seed = require('../helpers/seed-v2')
+const User = require('../../src/v2/models/user.model')
 
 const api = supertest(app)
 
@@ -18,16 +18,16 @@ afterAll(async () => {
 
 // Crea un rol elevado (Administrador) y un token firmado con ese rol.
 const elevatedAuth = async () => {
-  const rol = await seed.createRol({ name: 'Administrador' })
-  const { user } = await seed.createUser({ rol })
+  const rol = await seed.createRolV2({ name: 'Administrador' })
+  const { user } = await seed.createUserV2({ rol })
   const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
   return { rol, user, token }
 }
 
 // Crea un rol base (Ciudadano = ROL_USER) y su token.
 const baseUserAuth = async () => {
-  const rol = await seed.createRol({ name: 'Ciudadano' })
-  const { user } = await seed.createUser({ rol })
+  const rol = await seed.createRolV2({ name: 'Ciudadano' })
+  const { user } = await seed.createUserV2({ rol })
   const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
   return { rol, user, token }
 }
@@ -54,8 +54,8 @@ describe('GET /api/v2/users (auth)', () => {
 
   test('200 envelope { data } por tenant header', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
-    await seed.createUser({ gadID: gad })
+    const gad = await seed.createGadV2()
+    await seed.createUserV2({ gadId: gad })
     const res = await api
       .get('/api/v2/users')
       .set('Authorization', bearer(token))
@@ -78,9 +78,9 @@ describe('GET /api/v2/users (auth)', () => {
 
   test('paginacion: meta.pagination', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     for (let i = 0; i < 4; i++) {
-      await seed.createUser({ gadID: gad })
+      await seed.createUserV2({ gadId: gad })
     }
     const res = await api
       .get('/api/v2/users?page=1&size=2')
@@ -96,7 +96,7 @@ describe('GET /api/v2/users (auth)', () => {
 describe('GET /api/v2/users/:id (auth)', () => {
   test('200 sin password', async () => {
     const { token } = await elevatedAuth()
-    const { user } = await seed.createUser()
+    const { user } = await seed.createUserV2()
     const res = await api
       .get(`/api/v2/users/${user._id}`)
       .set('Authorization', bearer(token))
@@ -118,17 +118,17 @@ describe('GET /api/v2/users/:id (auth)', () => {
 describe('POST /api/v2/users (rol elevado)', () => {
   test('403 FORBIDDEN con rol base (Ciudadano)', async () => {
     const { token } = await baseUserAuth()
-    const rol = await seed.createRol()
-    const gad = await seed.createGad()
+    const rol = await seed.createRolV2()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/users')
       .set('Authorization', bearer(token))
       .send({
         name: 'Nuevo',
-        mail: 'nuevo@test.com',
+        email: 'nuevo@test.com',
         password: 'plano',
         rol: rol._id.toString(),
-        gadID: gad._id.toString()
+        gadId: gad._id.toString()
       })
       .expect(403)
     expect(res.body.error.code).toBe('FORBIDDEN')
@@ -136,17 +136,17 @@ describe('POST /api/v2/users (rol elevado)', () => {
 
   test('201 crea con password hasheada (no expuesta)', async () => {
     const { token } = await elevatedAuth()
-    const rol = await seed.createRol()
-    const gad = await seed.createGad()
+    const rol = await seed.createRolV2()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/users')
       .set('Authorization', bearer(token))
       .send({
         name: 'Nuevo',
-        mail: 'nuevo@test.com',
+        email: 'nuevo@test.com',
         password: 'plano',
         rol: rol._id.toString(),
-        gadID: gad._id.toString()
+        gadId: gad._id.toString()
       })
       .expect(201)
     expect(res.body.data.id).toBeDefined()
@@ -170,7 +170,7 @@ describe('POST /api/v2/users (rol elevado)', () => {
 describe('PUT /api/v2/users/:id (rol elevado)', () => {
   test('200 actualiza', async () => {
     const { token } = await elevatedAuth()
-    const { user } = await seed.createUser()
+    const { user } = await seed.createUserV2()
     const res = await api
       .put(`/api/v2/users/${user._id}`)
       .set('Authorization', bearer(token))
@@ -193,7 +193,7 @@ describe('PUT /api/v2/users/:id (rol elevado)', () => {
 describe('DELETE /api/v2/users/:id (rol elevado)', () => {
   test('204 elimina', async () => {
     const { token } = await elevatedAuth()
-    const { user } = await seed.createUser()
+    const { user } = await seed.createUserV2()
     await api
       .delete(`/api/v2/users/${user._id}`)
       .set('Authorization', bearer(token))
@@ -204,7 +204,7 @@ describe('DELETE /api/v2/users/:id (rol elevado)', () => {
 
   test('403 FORBIDDEN con rol base', async () => {
     const { token } = await baseUserAuth()
-    const { user } = await seed.createUser()
+    const { user } = await seed.createUserV2()
     const res = await api
       .delete(`/api/v2/users/${user._id}`)
       .set('Authorization', bearer(token))

@@ -1,24 +1,28 @@
-// Recurso REST /api/v2/characteristics sobre characteristicRepository.
+// Recurso REST /api/v2/characteristics sobre la capa de datos v2
+// (src/v2/repositories/characteristic.repository -> coleccion
+// v2_characteristics).
+//
+// Nombres limpios: valuations (antes valuation), allowedFormats (antes
+// allowed_formats). Nuevos campos de presentacion/workflow (HC#7/#8/#9):
+//   - inputKind: 'file' | 'link' (reemplaza el type===2 numerico legacy)
+//   - allowedFormats: string[]   (formatos aceptados)
+//   - isCover?: boolean          (marca de portada)
+//   - slug?, order?              (catalogo navegable/ordenable)
 //
 // Endpoints:
 //   GET    /                  -> lista (?type=<id> filtra; paginacion ?page=&size=)
-//   GET    /:id               -> 200 (valuation poblada) | 404 NOT_FOUND
+//   GET    /:id               -> 200 (valuations pobladas) | 404 NOT_FOUND
 //   POST   /                  -> 201 (valida body)
 //   PUT    /:id               -> 200 (reemplazo) | 404 NOT_FOUND
 //   DELETE /:id               -> 204 | 404 NOT_FOUND
-//   PATCH  /:id/valuation     -> 200 (reemplaza valuation) | 404
-//   PATCH  /:id/type          -> 200 (reemplaza type) | 404
+//   PATCH  /:id/valuation     -> 200 (reemplaza valuations) | 404
+//   PATCH  /:id/inputKind     -> 200 (reemplaza inputKind) | 404
 //   PATCH  /:id/format        -> 200 (reemplaza format) | 404
 //   PATCH  /:id/extras        -> 200 (reemplaza extras) | 404
-//
-// Decision REST: los POST de actualizacion por campo del legacy
-// (/addValuationArray, /changeType, /changeFormat, /addExtra con ?id=) se
-// convierten en PATCH coherentes por subruta sobre el recurso identificado por
-// :id.
 
 import { Router } from 'express'
 import { z } from 'zod'
-import characteristicRepository from '../../../repositories/characteristic.repository'
+import characteristicRepository from '../../../v2/repositories/characteristic.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { authenticate, requireElevatedRole } from '../auth'
 import { asyncHandler } from '../async-handler'
@@ -39,6 +43,8 @@ const listQuerySchema = paginationQuerySchema.extend({
   type: z.string().optional()
 })
 
+const inputKindSchema = z.enum(['file', 'link'])
+
 const createBodySchema = z.object({
   name: z.string().min(1),
   group: z.string().min(1),
@@ -50,11 +56,15 @@ const createBodySchema = z.object({
   tier: z.number(),
   unique: z.boolean().optional(),
   parts: z.array(z.string()).optional(),
-  valuation: z.array(objectId),
-  allowed_formats: z.array(z.string())
+  valuations: z.array(objectId),
+  allowedFormats: z.array(z.string()),
+  inputKind: inputKindSchema.optional(),
+  isCover: z.boolean().optional(),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional()
 })
 
-// PUT = reemplazo (mismos campos editables del legacy PUT /:id).
+// PUT = reemplazo (mismos campos editables, con los nuevos de presentacion).
 const updateBodySchema = z.object({
   name: z.string().min(1),
   group: z.string().min(1),
@@ -63,14 +73,18 @@ const updateBodySchema = z.object({
   score: z.number().optional(),
   tier: z.number(),
   isRequired: z.boolean(),
-  unique: z.boolean()
+  unique: z.boolean(),
+  inputKind: inputKindSchema.optional(),
+  isCover: z.boolean().optional(),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional()
 })
 
 const valuationBodySchema = z.object({
-  valuation: z.array(objectId)
+  valuations: z.array(objectId)
 })
-const typeBodySchema = z.object({
-  type: z.number()
+const inputKindBodySchema = z.object({
+  inputKind: inputKindSchema
 })
 const formatBodySchema = z.object({
   format: z.string()
@@ -86,7 +100,7 @@ router.get(
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
-    const filter = query.type !== undefined ? { typeID: query.type } : {}
+    const filter = query.type !== undefined ? { typeId: query.type } : {}
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
@@ -109,7 +123,7 @@ router.get(
   '/:id',
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
-    const item = await characteristicRepository.findByIdWithValuation(
+    const item = await characteristicRepository.findByIdWithValuations(
       req.params.id
     )
     if (!item) {
@@ -137,8 +151,12 @@ router.post(
       tier: body.tier,
       unique: body.unique ?? false,
       parts: body.parts ?? [],
-      valuation: body.valuation,
-      allowed_formats: body.allowed_formats
+      valuations: body.valuations,
+      allowedFormats: body.allowedFormats,
+      inputKind: body.inputKind,
+      isCover: body.isCover,
+      slug: body.slug,
+      order: body.order
     } as unknown as Parameters<typeof characteristicRepository.create>[0])
     return created(res, item)
   })
@@ -159,8 +177,12 @@ router.put(
       score: body.score ?? 0,
       tier: body.tier,
       isRequired: body.isRequired,
-      unique: body.unique
-    })
+      unique: body.unique,
+      inputKind: body.inputKind,
+      isCover: body.isCover,
+      slug: body.slug,
+      order: body.order
+    } as unknown as Parameters<typeof characteristicRepository.updateById>[1])
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
@@ -191,10 +213,10 @@ router.patch(
   validate({ params: idParamSchema, body: valuationBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof valuationBodySchema>
-    const updated = await characteristicRepository.updateValuation(
+    const updated = await characteristicRepository.updateValuations(
       req.params.id,
-      body.valuation as unknown as Parameters<
-        typeof characteristicRepository.updateValuation
+      body.valuations as unknown as Parameters<
+        typeof characteristicRepository.updateValuations
       >[1]
     )
     if (!updated) {
@@ -205,15 +227,15 @@ router.patch(
 )
 
 router.patch(
-  '/:id/type',
+  '/:id/inputKind',
   authenticate,
   requireElevatedRole,
-  validate({ params: idParamSchema, body: typeBodySchema }),
+  validate({ params: idParamSchema, body: inputKindBodySchema }),
   asyncHandler(async (req, res) => {
-    const body = req.body as z.infer<typeof typeBodySchema>
-    const updated = await characteristicRepository.updateType(
+    const body = req.body as z.infer<typeof inputKindBodySchema>
+    const updated = await characteristicRepository.updateInputKind(
       req.params.id,
-      body.type
+      body.inputKind
     )
     if (!updated) {
       throw new NotFoundError('characteristic not found')

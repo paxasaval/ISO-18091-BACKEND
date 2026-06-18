@@ -1,7 +1,7 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
+const seed = require('../helpers/seed-v2')
 
 const api = supertest(app)
 
@@ -17,14 +17,14 @@ afterAll(async () => {
 
 describe('GET /api/v2/sponsors', () => {
   test('200 envelope { data }', async () => {
-    await seed.createSponsor()
+    await seed.createSponsorV2()
     const res = await api.get('/api/v2/sponsors').expect(200)
     expect(res.body.data).toHaveLength(1)
   })
 
   test('paginacion: meta.pagination', async () => {
     for (let n = 0; n < 4; n++) {
-      await seed.createSponsor()
+      await seed.createSponsorV2()
     }
     const res = await api.get('/api/v2/sponsors?page=1&size=2').expect(200)
     expect(res.body.data).toHaveLength(2)
@@ -39,7 +39,7 @@ describe('GET /api/v2/sponsors', () => {
 
 describe('GET /api/v2/sponsors/:id', () => {
   test('200 con envelope', async () => {
-    const sponsor = await seed.createSponsor()
+    const sponsor = await seed.createSponsorV2()
     const res = await api.get(`/api/v2/sponsors/${sponsor._id}`).expect(200)
     expect(res.body.data.id).toBe(sponsor._id.toString())
   })
@@ -54,7 +54,7 @@ describe('GET /api/v2/sponsors/:id', () => {
 
 describe('POST /api/v2/sponsors', () => {
   test('201 crea', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/sponsors')
       .send({
@@ -79,8 +79,8 @@ describe('POST /api/v2/sponsors', () => {
 
 describe('PUT /api/v2/sponsors/:id', () => {
   test('200 actualiza', async () => {
-    const sponsor = await seed.createSponsor()
-    const gad = await seed.createGad()
+    const sponsor = await seed.createSponsorV2()
+    const gad = await seed.createGadV2()
     const res = await api
       .put(`/api/v2/sponsors/${sponsor._id}`)
       .send({
@@ -95,7 +95,7 @@ describe('PUT /api/v2/sponsors/:id', () => {
   })
 
   test('404 NOT_FOUND', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .put('/api/v2/sponsors/646172dcdc1f126cd5207c05')
       .send({
@@ -112,7 +112,7 @@ describe('PUT /api/v2/sponsors/:id', () => {
 
 describe('DELETE /api/v2/sponsors/:id', () => {
   test('204 elimina', async () => {
-    const sponsor = await seed.createSponsor()
+    const sponsor = await seed.createSponsorV2()
     await api.delete(`/api/v2/sponsors/${sponsor._id}`).expect(204)
   })
 

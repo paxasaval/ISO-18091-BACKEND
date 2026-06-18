@@ -9,7 +9,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import newsRepository from '../../../repositories/news.repository'
+import newsRepository from '../../../v2/repositories/news.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'

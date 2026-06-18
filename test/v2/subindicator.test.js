@@ -2,6 +2,7 @@ const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
 const seed = require('../helpers/seed')
+const seedV2 = require('../helpers/seed-v2')
 const SubIndicator = require('../../models/subindicator')
 const IndicatorInstance = require('../../models/indicatorInstance')
 
@@ -18,7 +19,7 @@ afterAll(async () => {
 })
 
 const elevatedAuth = async () => {
-  const rol = await seed.createRol({ name: 'Administrador' })
+  const rol = await seedV2.createRolV2({ name: 'Administrador' })
   const { user } = await seed.createUser({ rol })
   const token = seed.signToken({
     id: user._id.toString(),
@@ -28,7 +29,7 @@ const elevatedAuth = async () => {
 }
 
 const baseUserAuth = async () => {
-  const rol = await seed.createRol({ name: 'Ciudadano' })
+  const rol = await seedV2.createRolV2({ name: 'Ciudadano' })
   const { user } = await seed.createUser({ rol })
   const token = seed.signToken({
     id: user._id.toString(),

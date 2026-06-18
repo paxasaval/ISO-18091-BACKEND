@@ -12,8 +12,8 @@
 
 import { NextFunction, Request, Response } from 'express'
 import { ForbiddenError, UnauthorizedError } from '../../utils/errors'
-// Modelo Mongoose legacy en CommonJS sin tipos (checkJs:false) -> any justificado.
-import Rol from '../../../models/rol'
+// El rol del token vive en la capa v2 (coleccion v2_rols), igual que auth.ts.
+import Rol from '../../v2/models/rol.model'
 import { asyncHandler } from './async-handler'
 
 export const requireAdminRole = asyncHandler(

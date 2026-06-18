@@ -1,7 +1,7 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
+const seed = require('../helpers/seed-v2')
 
 const api = supertest(app)
 
@@ -17,7 +17,7 @@ afterAll(async () => {
 
 describe('GET /api/v2/valuation', () => {
   test('200 envelope { data }', async () => {
-    await seed.createValuation()
+    await seed.createValuationV2()
     const res = await api.get('/api/v2/valuation').expect(200)
     expect(res.body.data).toHaveLength(1)
   })
@@ -25,7 +25,7 @@ describe('GET /api/v2/valuation', () => {
 
 describe('GET /api/v2/valuation/:id', () => {
   test('200 con envelope', async () => {
-    const val = await seed.createValuation()
+    const val = await seed.createValuationV2()
     const res = await api.get(`/api/v2/valuation/${val._id}`).expect(200)
     expect(res.body.data.id).toBe(val._id.toString())
   })
@@ -58,7 +58,7 @@ describe('POST /api/v2/valuation', () => {
 
 describe('PUT /api/v2/valuation/:id', () => {
   test('200 actualiza', async () => {
-    const val = await seed.createValuation()
+    const val = await seed.createValuationV2()
     const res = await api
       .put(`/api/v2/valuation/${val._id}`)
       .send({ name: 'V2', category: 'c2', maxValue: 3 })
@@ -77,7 +77,7 @@ describe('PUT /api/v2/valuation/:id', () => {
 
 describe('DELETE /api/v2/valuation/:id', () => {
   test('204 elimina', async () => {
-    const val = await seed.createValuation()
+    const val = await seed.createValuationV2()
     await api.delete(`/api/v2/valuation/${val._id}`).expect(204)
   })
 

@@ -1,7 +1,7 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
+const seed = require('../helpers/seed-v2')
 
 const api = supertest(app)
 
@@ -17,8 +17,8 @@ afterAll(async () => {
 
 describe('GET /api/v2/indicators', () => {
   test('envelope de exito: { data } con ods poblados', async () => {
-    const ods = await seed.createOds()
-    await seed.createIndicator({ ods: [ods._id] })
+    const ods = await seed.createOdsV2()
+    await seed.createIndicatorV2({ ods: [ods._id] })
     const res = await api.get('/api/v2/indicators').expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
     expect(res.body.data).toHaveLength(1)
@@ -28,8 +28,8 @@ describe('GET /api/v2/indicators', () => {
   })
 
   test('filtra por quadrant', async () => {
-    await seed.createIndicator({ quadrant: 1, number: 1 })
-    await seed.createIndicator({ quadrant: 2, number: 1 })
+    await seed.createIndicatorV2({ quadrant: 1, number: 1 })
+    await seed.createIndicatorV2({ quadrant: 2, number: 1 })
     const res = await api.get('/api/v2/indicators?quadrant=2').expect(200)
     expect(res.body.data).toHaveLength(1)
     expect(res.body.data[0].quadrant).toBe(2)
@@ -37,7 +37,7 @@ describe('GET /api/v2/indicators', () => {
 
   test('paginacion: meta.pagination con page/size/total/totalPages', async () => {
     for (let n = 1; n <= 5; n++) {
-      await seed.createIndicator({ quadrant: 1, number: n })
+      await seed.createIndicatorV2({ quadrant: 1, number: n })
     }
     const res = await api
       .get('/api/v2/indicators?page=1&size=2')
@@ -60,7 +60,7 @@ describe('GET /api/v2/indicators', () => {
 
 describe('GET /api/v2/indicators/:id', () => {
   test('200 con envelope', async () => {
-    const indicator = await seed.createIndicator()
+    const indicator = await seed.createIndicatorV2()
     const res = await api
       .get(`/api/v2/indicators/${indicator._id}`)
       .expect(200)
@@ -83,7 +83,7 @@ describe('GET /api/v2/indicators/:id', () => {
 
 describe('POST /api/v2/indicators', () => {
   test('201 crea el indicador', async () => {
-    const ods = await seed.createOds()
+    const ods = await seed.createOdsV2()
     const res = await api
       .post('/api/v2/indicators')
       .send({
@@ -114,8 +114,8 @@ describe('POST /api/v2/indicators', () => {
 
 describe('PUT /api/v2/indicators/:id', () => {
   test('200 actualiza', async () => {
-    const ods = await seed.createOds()
-    const indicator = await seed.createIndicator({ ods: [ods._id] })
+    const ods = await seed.createOdsV2()
+    const indicator = await seed.createIndicatorV2({ ods: [ods._id] })
     const res = await api
       .put(`/api/v2/indicators/${indicator._id}`)
       .send({
@@ -154,7 +154,7 @@ describe('PUT /api/v2/indicators/:id', () => {
 
 describe('DELETE /api/v2/indicators/:id', () => {
   test('204 elimina', async () => {
-    const indicator = await seed.createIndicator()
+    const indicator = await seed.createIndicatorV2()
     await api.delete(`/api/v2/indicators/${indicator._id}`).expect(204)
   })
 

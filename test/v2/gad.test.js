@@ -1,8 +1,8 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
-const Gad = require('../../models/gad')
+const seed = require('../helpers/seed-v2')
+const Gad = require('../../src/v2/models/gad.model')
 
 const api = supertest(app)
 
@@ -18,8 +18,8 @@ afterAll(async () => {
 
 // Crea un rol elevado (Administrador) y un token firmado con ese rol.
 const elevatedAuth = async () => {
-  const rol = await seed.createRol({ name: 'Administrador' })
-  const { user } = await seed.createUser({ rol })
+  const rol = await seed.createRolV2({ name: 'Administrador' })
+  const { user } = await seed.createUserV2({ rol })
   const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
   return { rol, user, token }
 }
@@ -28,7 +28,7 @@ const bearer = (token) => `Bearer ${token}`
 
 describe('GET /api/v2/gad', () => {
   test('200 envelope { data }', async () => {
-    await seed.createGad()
+    await seed.createGadV2()
     const res = await api.get('/api/v2/gad').expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
     expect(res.body.data).toHaveLength(1)
@@ -36,7 +36,7 @@ describe('GET /api/v2/gad', () => {
   })
 
   test('paginacion: meta.pagination', async () => {
-    for (let i = 0; i < 3; i++) await seed.createGad()
+    for (let i = 0; i < 3; i++) await seed.createGadV2()
     const res = await api.get('/api/v2/gad?page=1&size=2').expect(200)
     expect(res.body.data).toHaveLength(2)
     expect(res.body.meta.pagination.total).toBe(3)
@@ -51,7 +51,7 @@ describe('GET /api/v2/gad', () => {
 
 describe('GET /api/v2/gad/:id', () => {
   test('200 con envelope', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api.get(`/api/v2/gad/${gad._id}`).expect(200)
     expect(res.body.data.id).toBe(gad._id.toString())
   })
@@ -111,7 +111,7 @@ describe('POST /api/v2/gad (rol elevado)', () => {
 describe('PUT /api/v2/gad/:id (rol elevado)', () => {
   test('200 actualiza', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .put(`/api/v2/gad/${gad._id}`)
       .set('Authorization', bearer(token))
@@ -147,7 +147,7 @@ describe('PUT /api/v2/gad/:id (rol elevado)', () => {
 describe('DELETE /api/v2/gad/:id (rol elevado)', () => {
   test('204 elimina', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     await api
       .delete(`/api/v2/gad/${gad._id}`)
       .set('Authorization', bearer(token))
@@ -167,14 +167,14 @@ describe('DELETE /api/v2/gad/:id (rol elevado)', () => {
 
 describe('GET/POST /api/v2/gad/:id/reports', () => {
   test('200 lista vacia inicialmente', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api.get(`/api/v2/gad/${gad._id}/reports`).expect(200)
     expect(res.body.data).toEqual([])
   })
 
   test('201 crea y enlaza un report', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post(`/api/v2/gad/${gad._id}/reports`)
       .set('Authorization', bearer(token))
@@ -184,8 +184,8 @@ describe('GET/POST /api/v2/gad/:id/reports', () => {
         info: [{ label: 'l', data: 'd' }]
       })
       .expect(201)
-    // Report no define toJSON con id; se serializa con _id.
-    expect(res.body.data._id).toBeDefined()
+    // El modelo Report v2 define toJSON con id (_id -> id).
+    expect(res.body.data.id).toBeDefined()
     const stored = await Gad.findById(gad._id)
     expect(stored.report).toHaveLength(1)
   })
@@ -194,7 +194,7 @@ describe('GET/POST /api/v2/gad/:id/reports', () => {
 describe('PUT /api/v2/gad/:id/config (rol elevado)', () => {
   test('200 actualiza publishAuto + reportDefault', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const reportId = '646172dcdc1f126cd5207c05'
     const res = await api
       .put(`/api/v2/gad/${gad._id}/config`)

@@ -13,8 +13,9 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import env from '../../config/env'
 import { getTokenFrom, TokenPayload } from '../../middleware/auth'
 import { ForbiddenError, UnauthorizedError } from '../../utils/errors'
-// Modelo Mongoose legacy en CommonJS sin tipos (checkJs:false) -> any justificado.
-import Rol from '../../../models/rol'
+// El rol del token vive en la capa v2 (coleccion v2_rols): los usuarios v2
+// referencian RolV2 y el recurso /api/v2/rol opera sobre este modelo.
+import Rol from '../../v2/models/rol.model'
 import { asyncHandler } from './async-handler'
 
 // Verifica el JWT y adjunta el payload a req.token. Lanza UnauthorizedError

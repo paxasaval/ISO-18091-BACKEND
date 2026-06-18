@@ -1,8 +1,8 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
-const Period = require('../../models/period')
+const seed = require('../helpers/seed-v2')
+const Period = require('../../src/v2/models/period.model')
 
 const api = supertest(app)
 
@@ -17,8 +17,8 @@ afterAll(async () => {
 })
 
 const elevatedAuth = async () => {
-  const rol = await seed.createRol({ name: 'Administrador' })
-  const { user } = await seed.createUser({ rol })
+  const rol = await seed.createRolV2({ name: 'Administrador' })
+  const { user } = await seed.createUserV2({ rol })
   const token = seed.signToken({
     id: user._id.toString(),
     rol: rol._id.toString()
@@ -27,8 +27,8 @@ const elevatedAuth = async () => {
 }
 
 const baseUserAuth = async () => {
-  const rol = await seed.createRol({ name: 'Ciudadano' })
-  const { user } = await seed.createUser({ rol })
+  const rol = await seed.createRolV2({ name: 'Ciudadano' })
+  const { user } = await seed.createUserV2({ rol })
   const token = seed.signToken({
     id: user._id.toString(),
     rol: rol._id.toString()
@@ -40,7 +40,7 @@ const bearer = (token) => `Bearer ${token}`
 
 describe('GET /api/v2/periods (auth)', () => {
   test('401 sin token', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .get('/api/v2/periods')
       .set('tenant', gad._id.toString())
@@ -50,8 +50,8 @@ describe('GET /api/v2/periods (auth)', () => {
 
   test('200 lista por tenant', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
-    await seed.createPeriod({ gad })
+    const gad = await seed.createGadV2()
+    await seed.createPeriodV2({ gad })
     const res = await api
       .get('/api/v2/periods')
       .set('Authorization', bearer(token))
@@ -74,7 +74,7 @@ describe('GET /api/v2/periods (auth)', () => {
 describe('GET /api/v2/periods/:id (auth)', () => {
   test('200', async () => {
     const { token } = await elevatedAuth()
-    const period = await seed.createPeriod()
+    const period = await seed.createPeriodV2()
     const res = await api
       .get(`/api/v2/periods/${period._id}`)
       .set('Authorization', bearer(token))
@@ -94,7 +94,7 @@ describe('GET /api/v2/periods/:id (auth)', () => {
 
 describe('POST /api/v2/periods (rol elevado)', () => {
   test('401 sin token', async () => {
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/periods')
       .set('tenant', gad._id.toString())
@@ -105,7 +105,7 @@ describe('POST /api/v2/periods (rol elevado)', () => {
 
   test('403 con rol base', async () => {
     const { token } = await baseUserAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/periods')
       .set('Authorization', bearer(token))
@@ -117,7 +117,7 @@ describe('POST /api/v2/periods (rol elevado)', () => {
 
   test('201 crea periodo', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/periods')
       .set('Authorization', bearer(token))
@@ -131,9 +131,9 @@ describe('POST /api/v2/periods (rol elevado)', () => {
 
   test('201 clone=true crea periodo y clona instancias', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
-    await seed.createIndicator()
-    await seed.createType({ mandatory: true })
+    const gad = await seed.createGadV2()
+    await seed.createIndicatorV2()
+    await seed.createTypeV2({ mandatory: true })
     const res = await api
       .post('/api/v2/periods?clone=true')
       .set('Authorization', bearer(token))
@@ -147,7 +147,7 @@ describe('POST /api/v2/periods (rol elevado)', () => {
 
   test('400 body invalido', async () => {
     const { token } = await elevatedAuth()
-    const gad = await seed.createGad()
+    const gad = await seed.createGadV2()
     const res = await api
       .post('/api/v2/periods')
       .set('Authorization', bearer(token))
@@ -161,7 +161,7 @@ describe('POST /api/v2/periods (rol elevado)', () => {
 describe('DELETE /api/v2/periods/:id (rol elevado)', () => {
   test('204 elimina', async () => {
     const { token } = await elevatedAuth()
-    const period = await seed.createPeriod()
+    const period = await seed.createPeriodV2()
     await api
       .delete(`/api/v2/periods/${period._id}`)
       .set('Authorization', bearer(token))
@@ -171,7 +171,7 @@ describe('DELETE /api/v2/periods/:id (rol elevado)', () => {
 
   test('403 con rol base', async () => {
     const { token } = await baseUserAuth()
-    const period = await seed.createPeriod()
+    const period = await seed.createPeriodV2()
     const res = await api
       .delete(`/api/v2/periods/${period._id}`)
       .set('Authorization', bearer(token))

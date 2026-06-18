@@ -13,6 +13,13 @@ const Gad = require('../../src/v2/models/gad.model')
 const Type = require('../../src/v2/models/type.model')
 const Characteristic = require('../../src/v2/models/characteristic.model')
 const Valuation = require('../../src/v2/models/valuation.model')
+const Ods = require('../../src/v2/models/ods.model')
+const Indicator = require('../../src/v2/models/indicator.model')
+const Period = require('../../src/v2/models/period.model')
+const Commit = require('../../src/v2/models/commit.model')
+const Notification = require('../../src/v2/models/notification.model')
+const News = require('../../src/v2/models/news.model')
+const Sponsor = require('../../src/v2/models/sponsor.model')
 
 // Devuelve el _id si recibe un documento, o el valor tal cual si ya es un id.
 const idOf = (docOrId) => (docOrId && docOrId._id ? docOrId._id : docOrId)
@@ -118,6 +125,99 @@ const createTypeV2 = async (overrides = {}) => {
   }).save()
 }
 
+const createOdsV2 = (overrides = {}) =>
+  new Ods({
+    number: 1,
+    name: 'Fin de la pobreza',
+    img: 'ods1.png',
+    slug: 'fin-de-la-pobreza',
+    order: 1,
+    ...overrides
+  }).save()
+
+const createIndicatorV2 = async (overrides = {}) => {
+  const { ods: odsOv, ...rest } = overrides
+  const ods = odsOv || [(await createOdsV2())._id]
+  return new Indicator({
+    name: 'Indicador Test',
+    description: 'descripcion',
+    number: 1,
+    quadrant: 1,
+    quadrantName: 'Cuadrante 1',
+    red: 'rojo',
+    yellow: 'amarillo',
+    green: 'verde',
+    slug: 'indicador-test',
+    order: 1,
+    ...rest,
+    ods
+  }).save()
+}
+
+const createPeriodV2 = async (overrides = {}) => {
+  const { gad: gadOv, createdBy: byOv, ...rest } = overrides
+  const gad = gadOv || (await createGadV2())
+  const createdBy = byOv || (await createUserV2()).user._id
+  return new Period({
+    year: '2026',
+    ...rest,
+    gad: idOf(gad),
+    createdBy: idOf(createdBy)
+  }).save()
+}
+
+const createCommitV2 = async (overrides = {}) => {
+  const { author: authorOv, ...rest } = overrides
+  const author = authorOv || (await createUserV2()).user._id
+  return new Commit({
+    body: 'comentario',
+    created: new Date(),
+    lastUpdate: new Date(),
+    ...rest,
+    author: idOf(author)
+  }).save()
+}
+
+const createNotificationV2 = (overrides = {}) =>
+  new Notification({
+    type: 1,
+    content: 'notificacion test',
+    itemType: 1,
+    entityType: 'indicator',
+    action: 'added',
+    date: new Date(),
+    state: 1,
+    ...overrides
+  }).save()
+
+const createNewsV2 = async (overrides = {}) => {
+  const { author: authOv, gad: gadOv, ...rest } = overrides
+  const author = authOv || (await createUserV2()).user._id
+  const gad = gadOv || (await createGadV2())
+  return new News({
+    image: 'news.png',
+    title: 'Noticia Test',
+    description: 'descripcion noticia',
+    tag: ['tag1'],
+    ...rest,
+    author: idOf(author),
+    gad: idOf(gad)
+  }).save()
+}
+
+const createSponsorV2 = async (overrides = {}) => {
+  const { gad: gadOv, ...rest } = overrides
+  const gad = gadOv || (await createGadV2())
+  return new Sponsor({
+    name: 'Sponsor Test',
+    description: 'descripcion sponsor',
+    image: 'sponsor.png',
+    state: true,
+    ...rest,
+    gad: idOf(gad)
+  }).save()
+}
+
 module.exports = {
   signToken,
   createRolV2,
@@ -125,5 +225,12 @@ module.exports = {
   createUserV2,
   createValuationV2,
   createCharacteristicV2,
-  createTypeV2
+  createTypeV2,
+  createOdsV2,
+  createIndicatorV2,
+  createPeriodV2,
+  createCommitV2,
+  createNotificationV2,
+  createNewsV2,
+  createSponsorV2
 }

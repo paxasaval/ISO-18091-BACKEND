@@ -1,7 +1,7 @@
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
+const seed = require('../helpers/seed-v2')
 
 const api = supertest(app)
 
@@ -17,7 +17,7 @@ afterAll(async () => {
 
 describe('GET /api/v2/ods', () => {
   test('envelope de exito: { data } sin meta', async () => {
-    await seed.createOds()
+    await seed.createOdsV2()
     const res = await api.get('/api/v2/ods').expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
     expect(res.body.data).toHaveLength(1)
@@ -27,7 +27,7 @@ describe('GET /api/v2/ods', () => {
 
   test('paginacion: meta.pagination con page/size/total/totalPages', async () => {
     for (let n = 1; n <= 5; n++) {
-      await seed.createOds({ number: n })
+      await seed.createOdsV2({ number: n })
     }
     const res = await api.get('/api/v2/ods?page=1&size=2').expect(200)
     expect(res.body.data).toHaveLength(2)
@@ -47,7 +47,7 @@ describe('GET /api/v2/ods', () => {
 
 describe('GET /api/v2/ods/:id', () => {
   test('200 con envelope', async () => {
-    const ods = await seed.createOds()
+    const ods = await seed.createOdsV2()
     const res = await api.get(`/api/v2/ods/${ods._id}`).expect(200)
     expect(res.body.data.id).toBe(ods._id.toString())
   })
@@ -84,7 +84,7 @@ describe('POST /api/v2/ods', () => {
 
 describe('PUT /api/v2/ods/:id', () => {
   test('200 actualiza', async () => {
-    const ods = await seed.createOds()
+    const ods = await seed.createOdsV2()
     const res = await api
       .put(`/api/v2/ods/${ods._id}`)
       .send({ number: 9, name: 'Actualizado', img: 'ods9.png' })
@@ -103,7 +103,7 @@ describe('PUT /api/v2/ods/:id', () => {
 
 describe('DELETE /api/v2/ods/:id', () => {
   test('204 elimina', async () => {
-    const ods = await seed.createOds()
+    const ods = await seed.createOdsV2()
     await api.delete(`/api/v2/ods/${ods._id}`).expect(204)
   })
 

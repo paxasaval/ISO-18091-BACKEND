@@ -1,15 +1,19 @@
-// Recurso REST /api/v2/valuation sobre valuationRepository.
+// Recurso REST /api/v2/valuation sobre la capa de datos v2
+// (src/v2/repositories/valuation.repository -> coleccion v2_valuations).
+//
+// Acepta slug/order (HC#5) y ORDENA los listados por order asc (luego name).
 //
 // Endpoints:
-//   GET    /            -> lista (paginacion ?page=&size= con meta)
+//   GET    /            -> lista ORDENADA por order asc (luego name);
+//                          paginacion ?page=&size= con meta
 //   GET    /:id         -> 200 | 404 NOT_FOUND
-//   POST   /            -> 201 (valida body)
+//   POST   /            -> 201 (valida body, incluye slug/order)
 //   PUT    /:id         -> 200 (valida body) | 404 NOT_FOUND
 //   DELETE /:id         -> 204 | 404 NOT_FOUND
 
 import { Router } from 'express'
 import { z } from 'zod'
-import valuationRepository from '../../../repositories/valuation.repository'
+import valuationRepository from '../../../v2/repositories/valuation.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
@@ -17,6 +21,9 @@ import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { validate } from '../validate'
 
 const router = Router()
+
+// Orden estable del catalogo: por order asc, desempate por name.
+const CATALOG_SORT: Record<string, 1 | -1> = { order: 1, name: 1 }
 
 // --- Schemas ---
 
@@ -29,7 +36,9 @@ const listQuerySchema = paginationQuerySchema
 const createBodySchema = z.object({
   name: z.string().min(1),
   category: z.string().min(1),
-  maxValue: z.number()
+  maxValue: z.number(),
+  slug: z.string().min(1).optional(),
+  order: z.number().int().optional()
 })
 
 // PUT = reemplazo completo del recurso (mismo schema que create).
@@ -45,14 +54,15 @@ router.get(
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
-      const items = await valuationRepository.findAll()
+      const items = await valuationRepository.findAll({}, { sort: CATALOG_SORT })
       return ok(res, items)
     }
 
     const { items, total } = await valuationRepository.findPage(
       {},
       pg.page,
-      pg.size
+      pg.size,
+      { sort: CATALOG_SORT }
     )
     return ok(res, items, {
       pagination: buildPaginationMeta(pg.page, pg.size, total)

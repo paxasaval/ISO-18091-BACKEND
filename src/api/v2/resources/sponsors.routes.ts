@@ -9,7 +9,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import sponsorRepository from '../../../repositories/sponsor.repository'
+import sponsorRepository from '../../../v2/repositories/sponsor.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'

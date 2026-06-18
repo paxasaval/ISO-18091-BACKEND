@@ -9,7 +9,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import commitRepository from '../../../repositories/commit.repository'
+import commitRepository from '../../../v2/repositories/commit.repository'
 import { NotFoundError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
@@ -29,7 +29,7 @@ const listQuerySchema = paginationQuerySchema
 
 const createBodySchema = z.object({
   body: z.string().min(1),
-  autor: objectId
+  author: objectId
 })
 
 // PUT = reemplazo completo del recurso (mismo schema que create).

@@ -13,7 +13,7 @@
 import { Request, Router } from 'express'
 import bcrypt from 'bcrypt'
 import { z } from 'zod'
-import userRepository from '../../../repositories/user.repository'
+import userRepository from '../../../v2/repositories/user.repository'
 import { NotFoundError, ValidationError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
 import { authenticate, requireElevatedRole } from '../auth'
@@ -37,10 +37,10 @@ const listQuerySchema = paginationQuerySchema.extend({
 
 const createBodySchema = z.object({
   name: z.string().min(1),
-  mail: z.string().email(),
+  email: z.string().email(),
   password: z.string().min(1),
   rol: z.string().min(1),
-  gadID: z.string().min(1),
+  gadId: z.string().min(1),
   image: z.string().optional(),
   state: z.boolean().optional()
 })
@@ -48,10 +48,10 @@ const createBodySchema = z.object({
 // PUT: reemplazo. password opcional; si viene, se re-hashea.
 const updateBodySchema = z.object({
   name: z.string().min(1).optional(),
-  mail: z.string().email().optional(),
+  email: z.string().email().optional(),
   password: z.string().min(1).optional(),
   rol: z.string().min(1).optional(),
-  gadID: z.string().min(1).optional(),
+  gadId: z.string().min(1).optional(),
   image: z.string().optional(),
   state: z.boolean().optional()
 })
@@ -75,7 +75,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
     const tenant = resolveTenant(req, query.tenant)
-    const filter = { gadID: tenant }
+    const filter = { gadId: tenant }
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
