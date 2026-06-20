@@ -12,7 +12,8 @@
     "dev": "cross-env NODE_ENV=development tsx watch index.js",
     "dev-test": "cross-env NODE_ENV=test tsx watch index.js",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "migrate:v2": "tsx src/v2/migration/migrate.ts"
   },
   "keywords": [
     "node",
