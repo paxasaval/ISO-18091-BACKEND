@@ -9,19 +9,23 @@
 //                                    order asc (luego name), characteristics
 //                                    pobladas. Paginacion ?page=&size= con meta.
 //   GET    /:id                   -> 200 (characteristics pobladas) | 404
-//   POST   /                      -> 201 (valida body, incluye slug/order)
-//   PUT    /:id                   -> 200 (valida body) | 404 NOT_FOUND
-//   DELETE /:id                   -> 204 | 404 NOT_FOUND
+//   POST   /                      -> authenticate + requirePermission('catalog:manage'); 201
+//   PUT    /:id                   -> authenticate + requirePermission('catalog:manage'); 200 | 404
+//   DELETE /:id                   -> authenticate + requirePermission('catalog:manage'); 204 | 404
+//
+// Auditoría: POST, PUT, DELETE registran en v2_audit_log.
 
 import { Router } from 'express'
 import { z } from 'zod'
 import typeRepository from '../../../v2/repositories/type.repository'
 import { NotFoundError } from '../../../utils/errors'
+import { authenticate, requirePermission } from '../auth'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
+import auditService from '../../../v2/services/audit.service'
 
 const router = Router()
 
@@ -102,33 +106,57 @@ router.get(
 
 router.post(
   '/',
+  authenticate,
+  requirePermission('catalog:manage'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const item = await typeRepository.create(req.body)
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'type.create',
+      entityType: 'type',
+      entityId: (item as unknown as { _id: { toString(): string } })._id.toString()
+    })
     return created(res, item)
   })
 )
 
 router.put(
   '/:id',
+  authenticate,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const updated = await typeRepository.updateById(req.params.id, req.body)
     if (!updated) {
       throw new NotFoundError('type not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'type.update',
+      entityType: 'type',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
 
 router.delete(
   '/:id',
+  authenticate,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const deleted = await typeRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('type not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'type.delete',
+      entityType: 'type',
+      entityId: req.params.id
+    })
     return noContent(res)
   })
 )

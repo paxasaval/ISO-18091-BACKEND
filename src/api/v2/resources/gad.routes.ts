@@ -3,13 +3,14 @@
 // Endpoints:
 //   GET    /                 -> lista (paginacion ?page=&size= con meta)
 //   GET    /:id              -> 200 | 404 NOT_FOUND
-//   POST   /                 -> 201 (valida body)
-//   PUT    /:id              -> 200 (valida body) | 404 NOT_FOUND
-//   DELETE /:id              -> 204 | 404 NOT_FOUND
+//   POST   /                 -> authenticate + requirePermission('gad:config'); 201
+//   PUT    /:id              -> authenticate + requirePermission('gad:config'); 200 | 404
+//   DELETE /:id              -> authenticate + requirePermission('gad:config'); 204 | 404
 //   GET    /:id/reports      -> 200 (reports poblados) | 404 NOT_FOUND
-//   POST   /:id/reports      -> 201 (crea Report y lo enlaza al gad) | 404
-//   PUT    /:id/config       -> 200 (reportDefault + publishAuto) | 404
+//   POST   /:id/reports      -> authenticate + requirePermission('gad:config'); 201 | 404
+//   PUT    /:id/config       -> authenticate + requirePermission('gad:config'); 200 | 404
 //
+// Auditoría: POST, PUT, DELETE, POST /reports y PUT /config registran en v2_audit_log.
 // REST: en el legacy reports y config se resolvian por header 'tenant'; aqui se
 // modelan como subrecursos/atributos del gad identificado por :id.
 
@@ -17,12 +18,13 @@ import { Router } from 'express'
 import { z } from 'zod'
 import gadRepository from '../../../v2/repositories/gad.repository'
 import { NotFoundError } from '../../../utils/errors'
-import { authenticate, requireElevatedRole } from '../auth'
+import { authenticate, requirePermission } from '../auth'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
+import auditService from '../../../v2/services/audit.service'
 
 const router = Router()
 
@@ -104,7 +106,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireElevatedRole,
+  requirePermission('gad:config'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createBodySchema>
@@ -120,6 +122,12 @@ router.post(
       publishAuto: body.publishAuto ?? true,
       report: []
     } as unknown as Parameters<typeof gadRepository.create>[0])
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'gad.create',
+      entityType: 'gad',
+      entityId: (gad as unknown as { _id: { toString(): string } })._id.toString()
+    })
     return created(res, gad)
   })
 )
@@ -127,7 +135,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('gad:config'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
@@ -141,6 +149,12 @@ router.put(
     if (!updated) {
       throw new NotFoundError('gad not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'gad.update',
+      entityType: 'gad',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
@@ -148,13 +162,19 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('gad:config'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const deleted = await gadRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('gad not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'gad.delete',
+      entityType: 'gad',
+      entityId: req.params.id
+    })
     return noContent(res)
   })
 )
@@ -176,7 +196,7 @@ router.get(
 router.post(
   '/:id/reports',
   authenticate,
-  requireElevatedRole,
+  requirePermission('gad:config'),
   validate({ params: idParamSchema, body: createReportBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createReportBodySchema>
@@ -189,6 +209,13 @@ router.post(
     if (!updated) {
       throw new NotFoundError('gad not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'gad.report.create',
+      entityType: 'gad',
+      entityId: req.params.id,
+      meta: { reportId: (report as unknown as { _id: { toString(): string } })._id.toString() }
+    })
     return created(res, report)
   })
 )
@@ -198,7 +225,7 @@ router.post(
 router.put(
   '/:id/config',
   authenticate,
-  requireElevatedRole,
+  requirePermission('gad:config'),
   validate({ params: idParamSchema, body: configBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof configBodySchema>
@@ -210,6 +237,13 @@ router.put(
     if (!updated) {
       throw new NotFoundError('gad not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'gad.config.update',
+      entityType: 'gad',
+      entityId: req.params.id,
+      meta: { reportDefault: body.reportDefault, publishAuto: body.publishAuto }
+    })
     return ok(res, updated)
   })
 )

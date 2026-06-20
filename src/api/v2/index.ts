@@ -26,6 +26,7 @@ import subindicatorRouter from './resources/subindicator.routes'
 import evidenceRouter from './resources/evidence.routes'
 import indicatorInstanceRouter from './resources/indicatorInstance.routes'
 import configRouter from './resources/config.routes'
+import auditLogRouter from './resources/audit-log.routes'
 import { errorHandler } from './error-handler'
 
 const router = Router()
@@ -52,6 +53,7 @@ router.use('/subindicators', subindicatorRouter)
 router.use('/evidences', evidenceRouter)
 router.use('/indicator-instances', indicatorInstanceRouter)
 router.use('/config', configRouter)
+router.use('/audit-log', auditLogRouter)
 
 // Error handler de v2 AL FINAL: captura solo errores de este sub-router.
 router.use(errorHandler)

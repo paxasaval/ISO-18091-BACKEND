@@ -4,11 +4,12 @@
 //   GET    /     -> authenticate; lista por tenant (header 'tenant' o ?tenant=),
 //                   con paginacion ?page=&size= (meta.pagination)
 //   GET    /:id  -> authenticate; 200 | 404 NOT_FOUND
-//   POST   /     -> authenticate + requireElevatedRole; hashea password; 201
-//   PUT    /:id  -> authenticate + requireElevatedRole; 200 | 404
-//   DELETE /:id  -> authenticate + requireElevatedRole; 204
+//   POST   /     -> authenticate + requirePermission('user:manage'); hashea password; 201
+//   PUT    /:id  -> authenticate + requirePermission('user:manage'); 200 | 404
+//   DELETE /:id  -> authenticate + requirePermission('user:manage'); 204
 //
 // El password NUNCA se expone: el toJSON del modelo lo elimina de la salida.
+// Auditoría: POST/DELETE registran entrada en v2_audit_log (actor = token.id).
 
 import { Request, Router } from 'express'
 import bcrypt from 'bcrypt'
@@ -16,10 +17,11 @@ import { z } from 'zod'
 import userRepository from '../../../v2/repositories/user.repository'
 import { NotFoundError, ValidationError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
-import { authenticate, requireElevatedRole } from '../auth'
+import { authenticate, requirePermission } from '../auth'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { validate } from '../validate'
+import auditService from '../../../v2/services/audit.service'
 
 const router = Router()
 
@@ -111,7 +113,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireElevatedRole,
+  requirePermission('user:manage'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createBodySchema>
@@ -125,6 +127,12 @@ router.post(
       created: now,
       lastUpdate: now
     } as unknown as Parameters<typeof userRepository.create>[0])
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'user.create',
+      entityType: 'user',
+      entityId: (user as unknown as { _id: { toString(): string } })._id.toString()
+    })
     return created(res, user)
   })
 )
@@ -132,7 +140,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('user:manage'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
@@ -151,13 +159,19 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('user:manage'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const deleted = await userRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('user not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'user.delete',
+      entityType: 'user',
+      entityId: req.params.id
+    })
     return noContent(res)
   })
 )

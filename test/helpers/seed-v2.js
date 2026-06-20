@@ -9,6 +9,8 @@ const bcrypt = require('bcrypt')
 // Los modelos v2 estan en TypeScript; tsx/ts-jest los resuelve via require.
 const Rol = require('../../src/v2/models/rol.model')
 const User = require('../../src/v2/models/user.model')
+// Mapeo rol -> permisos por defecto (Tema 3).
+const { permissionsForRole } = require('../../src/v2/constants/permissions')
 const Gad = require('../../src/v2/models/gad.model')
 const Type = require('../../src/v2/models/type.model')
 const Characteristic = require('../../src/v2/models/characteristic.model')
@@ -30,16 +32,22 @@ const idOf = (docOrId) => (docOrId && docOrId._id ? docOrId._id : docOrId)
 const signToken = ({ id, rol, mail = 'seed-v2@test.com', name = 'Seed V2' }) =>
   jwt.sign({ id, rol, mail, name }, process.env.SECRET, { expiresIn: 60 * 60 })
 
-const createRolV2 = (overrides = {}) =>
-  new Rol({
+// createRolV2: crea un rol v2 con permisos por defecto según el nombre.
+// Si se pasa 'permissions' en overrides ese valor tiene prioridad (override
+// explícito), de lo contrario se usa permissionsForRole(name).
+const createRolV2 = (overrides = {}) => {
+  const name = overrides.name || 'Administrador'
+  const defaultPermissions = permissionsForRole(name)
+  return new Rol({
     name: 'Administrador',
     description: 'rol administrador',
     code: 'admin',
     slug: 'administrador',
     order: 1,
-    permissions: [],
+    permissions: defaultPermissions,
     ...overrides
   }).save()
+}
 
 const createGadV2 = (overrides = {}) =>
   new Gad({

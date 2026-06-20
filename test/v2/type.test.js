@@ -15,6 +15,16 @@ afterAll(async () => {
   await db.disconnect()
 })
 
+// Crea un rol con catalog:manage (Administrador) y token firmado.
+const catalogAuth = async () => {
+  const rol = await seed.createRolV2({ name: 'Administrador' })
+  const { user } = await seed.createUserV2({ rol })
+  const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
+  return { rol, user, token }
+}
+
+const bearer = (token) => `Bearer ${token}`
+
 describe('GET /api/v2/types', () => {
   test('200 envelope { data } con characteristics pobladas', async () => {
     const ch = await seed.createCharacteristicV2()
@@ -88,10 +98,32 @@ describe('GET /api/v2/types/:id', () => {
   })
 })
 
-describe('POST /api/v2/types', () => {
-  test('201 crea con slug/order', async () => {
+describe('POST /api/v2/types (requirePermission catalog:manage)', () => {
+  test('401 UNAUTHORIZED sin token', async () => {
     const res = await api
       .post('/api/v2/types')
+      .send({ name: 'X', red: 'r', yellow: 'y', green: 'g', mandatory: true })
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
+
+  test('403 FORBIDDEN con rol sin catalog:manage', async () => {
+    const rol = await seed.createRolV2({ name: 'Ciudadano' })
+    const { user } = await seed.createUserV2({ rol })
+    const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
+    const res = await api
+      .post('/api/v2/types')
+      .set('Authorization', bearer(token))
+      .send({ name: 'Nuevo Tipo', red: 'r', yellow: 'y', green: 'g', mandatory: true })
+      .expect(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+  })
+
+  test('201 crea con slug/order', async () => {
+    const { token } = await catalogAuth()
+    const res = await api
+      .post('/api/v2/types')
+      .set('Authorization', bearer(token))
       .send({
         name: 'Nuevo Tipo',
         red: 'r',
@@ -108,16 +140,23 @@ describe('POST /api/v2/types', () => {
   })
 
   test('400 VALIDATION_ERROR', async () => {
-    const res = await api.post('/api/v2/types').send({ name: 'x' }).expect(400)
+    const { token } = await catalogAuth()
+    const res = await api
+      .post('/api/v2/types')
+      .set('Authorization', bearer(token))
+      .send({ name: 'x' })
+      .expect(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 })
 
-describe('PUT /api/v2/types/:id', () => {
+describe('PUT /api/v2/types/:id (requirePermission catalog:manage)', () => {
   test('200 actualiza', async () => {
+    const { token } = await catalogAuth()
     const type = await seed.createTypeV2()
     const res = await api
       .put(`/api/v2/types/${type._id}`)
+      .set('Authorization', bearer(token))
       .send({
         name: 'Cambiado',
         red: 'r',
@@ -133,24 +172,49 @@ describe('PUT /api/v2/types/:id', () => {
   })
 
   test('404 NOT_FOUND', async () => {
+    const { token } = await catalogAuth()
     const res = await api
       .put('/api/v2/types/646172dcdc1f126cd5207c05')
+      .set('Authorization', bearer(token))
       .send({ name: 'x', red: 'r', yellow: 'y', green: 'g', mandatory: true })
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
   })
+
+  test('401 UNAUTHORIZED sin token', async () => {
+    const type = await seed.createTypeV2()
+    const res = await api
+      .put(`/api/v2/types/${type._id}`)
+      .send({ name: 'x', red: 'r', yellow: 'y', green: 'g', mandatory: true })
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
 })
 
-describe('DELETE /api/v2/types/:id', () => {
+describe('DELETE /api/v2/types/:id (requirePermission catalog:manage)', () => {
   test('204 elimina', async () => {
+    const { token } = await catalogAuth()
     const type = await seed.createTypeV2()
-    await api.delete(`/api/v2/types/${type._id}`).expect(204)
+    await api
+      .delete(`/api/v2/types/${type._id}`)
+      .set('Authorization', bearer(token))
+      .expect(204)
   })
 
   test('404 NOT_FOUND', async () => {
+    const { token } = await catalogAuth()
     const res = await api
       .delete('/api/v2/types/646172dcdc1f126cd5207c05')
+      .set('Authorization', bearer(token))
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  test('401 UNAUTHORIZED sin token', async () => {
+    const type = await seed.createTypeV2()
+    const res = await api
+      .delete(`/api/v2/types/${type._id}`)
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
   })
 })

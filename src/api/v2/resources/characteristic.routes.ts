@@ -12,24 +12,30 @@
 // Endpoints:
 //   GET    /                  -> lista (?type=<id> filtra; paginacion ?page=&size=)
 //   GET    /:id               -> 200 (valuations pobladas) | 404 NOT_FOUND
-//   POST   /                  -> 201 (valida body)
-//   PUT    /:id               -> 200 (reemplazo) | 404 NOT_FOUND
-//   DELETE /:id               -> 204 | 404 NOT_FOUND
-//   PATCH  /:id/valuation     -> 200 (reemplaza valuations) | 404
-//   PATCH  /:id/inputKind     -> 200 (reemplaza inputKind) | 404
-//   PATCH  /:id/format        -> 200 (reemplaza format) | 404
-//   PATCH  /:id/extras        -> 200 (reemplaza extras) | 404
+//   POST   /                  -> authenticate + requirePermission('catalog:manage'); 201
+//   PUT    /:id               -> authenticate + requirePermission('catalog:manage'); 200 | 404
+//   DELETE /:id               -> authenticate + requirePermission('catalog:manage'); 204 | 404
+//   PATCH  /:id/valuation     -> authenticate + requirePermission('rubric:configure'); 200 | 404
+//   PATCH  /:id/inputKind     -> authenticate + requirePermission('catalog:manage'); 200 | 404
+//   PATCH  /:id/format        -> authenticate + requirePermission('catalog:manage'); 200 | 404
+//   PATCH  /:id/extras        -> authenticate + requirePermission('catalog:manage'); 200 | 404
+//
+// Decisión: PATCH /valuation usa 'rubric:configure' porque modificar la
+// asociación de valoraciones es una tarea de metodólogo (configura criterios).
+// El resto de mutaciones de estructura del catálogo usan 'catalog:manage'.
+// Auditoría: POST, PUT, DELETE, PATCH registran en v2_audit_log.
 
 import { Router } from 'express'
 import { z } from 'zod'
 import characteristicRepository from '../../../v2/repositories/characteristic.repository'
 import { NotFoundError } from '../../../utils/errors'
-import { authenticate, requireElevatedRole } from '../auth'
+import { authenticate, requirePermission } from '../auth'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
+import auditService from '../../../v2/services/audit.service'
 
 const router = Router()
 
@@ -136,7 +142,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createBodySchema>
@@ -158,6 +164,12 @@ router.post(
       slug: body.slug,
       order: body.order
     } as unknown as Parameters<typeof characteristicRepository.create>[0])
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.create',
+      entityType: 'characteristic',
+      entityId: (item as unknown as { _id: { toString(): string } })._id.toString()
+    })
     return created(res, item)
   })
 )
@@ -165,7 +177,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
@@ -186,6 +198,12 @@ router.put(
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.update',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
@@ -193,23 +211,31 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const deleted = await characteristicRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.delete',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return noContent(res)
   })
 )
 
 // --- PATCH por campo ---
 
+// PATCH /valuation: modifica la asociación de valoraciones (criterios de
+// rúbrica) → permiso 'rubric:configure' (tarea del metodólogo).
 router.patch(
   '/:id/valuation',
   authenticate,
-  requireElevatedRole,
+  requirePermission('rubric:configure'),
   validate({ params: idParamSchema, body: valuationBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof valuationBodySchema>
@@ -222,6 +248,12 @@ router.patch(
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.valuation.update',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
@@ -229,7 +261,7 @@ router.patch(
 router.patch(
   '/:id/inputKind',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema, body: inputKindBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof inputKindBodySchema>
@@ -240,6 +272,12 @@ router.patch(
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.inputKind.update',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
@@ -247,7 +285,7 @@ router.patch(
 router.patch(
   '/:id/format',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema, body: formatBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof formatBodySchema>
@@ -258,6 +296,12 @@ router.patch(
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.format.update',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
@@ -265,7 +309,7 @@ router.patch(
 router.patch(
   '/:id/extras',
   authenticate,
-  requireElevatedRole,
+  requirePermission('catalog:manage'),
   validate({ params: idParamSchema, body: extrasBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof extrasBodySchema>
@@ -276,6 +320,12 @@ router.patch(
     if (!updated) {
       throw new NotFoundError('characteristic not found')
     }
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'characteristic.extras.update',
+      entityType: 'characteristic',
+      entityId: req.params.id
+    })
     return ok(res, updated)
   })
 )
