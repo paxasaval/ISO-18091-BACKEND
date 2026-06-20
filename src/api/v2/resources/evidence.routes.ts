@@ -41,6 +41,7 @@ import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
 import auditService from '../../../v2/services/audit.service'
+import scoringService from '../../../v2/services/scoring.service'
 
 const router = Router()
 
@@ -191,9 +192,6 @@ router.post(
       entityId: (saved as unknown as { _id: { toString(): string } })._id.toString()
     })
 
-    // TODO Tema 4: scoring.service.recompute(subindicatorId) para recalcular
-    // qualification 0-3 del subindicador usando los CharacteristicAssessmentV2.
-
     return created(res, saved)
   })
 )
@@ -248,6 +246,8 @@ router.delete(
       throw new NotFoundError('evidence not found')
     }
 
+    const deletedSub = (deleted as unknown as { subindicatorId?: { toString(): string } }).subindicatorId
+
     await auditService.record({
       actor: userId,
       action: 'evidence.delete',
@@ -255,7 +255,9 @@ router.delete(
       entityId: req.params.id
     })
 
-    // TODO Tema 4: scoring.service.recompute(subindicatorId) tras eliminar.
+    if (deletedSub) {
+      await scoringService.recomputeAfterEvidenceChange(deletedSub.toString(), userId)
+    }
 
     return noContent(res)
   })
@@ -362,8 +364,7 @@ router.put(
       }
     })
 
-    // TODO Tema 4: scoring.service.recompute(ev.subindicatorId) para derivar
-    // qualification 0-3 del subindicador desde los CharacteristicAssessmentV2.
+    await scoringService.recomputeAfterEvidenceChange(ev.subindicatorId.toString(), userId)
 
     return ok(res, { evidence, assessment })
   })
@@ -397,6 +398,11 @@ router.patch(
       entityId: req.params.id,
       meta: { verified: body.verified }
     })
+
+    const updatedSub = (updated as unknown as { subindicatorId?: { toString(): string } }).subindicatorId
+    if (updatedSub) {
+      await scoringService.recomputeAfterEvidenceChange(updatedSub.toString(), userId)
+    }
 
     return ok(res, updated)
   })

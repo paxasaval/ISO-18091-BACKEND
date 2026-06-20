@@ -1,7 +1,6 @@
 // Tests de /api/v2/evidences re-apuntado a la capa v2 (EvidenceV2 / v2_evidences).
 // Usa seed-v2 y el grafo v2 (gad/indicatorInstance/subindicator/type/characteristic/
-// valuation v2). Los tests de v1 (subindicadores legacy, recalc) son legacy y ya
-// no aplican a este recurso — v2 delega el calculo 0-3 a Tema 4.
+// valuation v2). Incluye tests de integracion del recompute de scoring (Tema 4).
 
 const supertest = require('supertest')
 const app = require('../../app')
@@ -9,6 +8,8 @@ const db = require('../helpers/db')
 const seed = require('../helpers/seed-v2')
 const Evidence = require('../../src/v2/models/evidence.model')
 const CharacteristicAssessment = require('../../src/v2/models/characteristic-assessment.model')
+const Subindicator = require('../../src/v2/models/subindicator.model')
+const IndicatorInstance = require('../../src/v2/models/indicator-instance.model')
 
 const api = supertest(app)
 
@@ -591,5 +592,126 @@ describe('GET /api/v2/subindicators/:id/assessments', () => {
       .get(`/api/v2/subindicators/${sub._id}/assessments/646172dcdc1f126cd5207c05`)
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Integracion: qualify + recompute del semaforo (Tema 4)
+// ---------------------------------------------------------------------------
+
+describe('Integracion: qualify dispara recompute del semaforo', () => {
+  // Construye el grafo v2 completo con umbrales de semaforo para poder verificar
+  // la qualification resultante.
+  const seedGraphWithThresholds = async () => {
+    const gad = await seed.createGadV2()
+    const valuation = await seed.createValuationV2({ maxValue: 1 })
+    const characteristic = await seed.createCharacteristicV2({
+      valuations: [valuation._id],
+      tier: 1
+    })
+    const type = await seed.createTypeV2({
+      characteristics: [characteristic._id],
+      red: '0.50',
+      yellow: '0.75'
+    })
+    const indicatorInstance = await seed.createIndicatorInstanceV2({ gad })
+    const sub = await seed.createSubindicatorV2({
+      indicatorInstance,
+      type
+    })
+    // Enlazar subindicador a la instancia
+    await IndicatorInstance.findByIdAndUpdate(indicatorInstance._id, {
+      subindicators: [sub._id]
+    })
+    return { gad, valuation, characteristic, type, indicatorInstance, sub }
+  }
+
+  test('tras qualify con criterio cumplido + assessment verified, subindicador pasa a 3', async () => {
+    const { token: qualifierToken } = await adminAuth()
+    const { user: authorUser } = await responsibleAuth()
+    const { sub, characteristic, valuation, indicatorInstance } = await seedGraphWithThresholds()
+
+    const ev = await seed.createEvidenceV2({
+      subindicator: sub,
+      characteristic,
+      author: authorUser._id
+    })
+
+    // Calificar: un criterio met=true, weight=1
+    await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({
+        criteria: [
+          { valuationId: valuation._id.toString(), met: true, weight: 1 }
+        ]
+      })
+      .expect(200)
+
+    // El assessment queda sin verificar por defecto (verified=false) ->
+    // el recompute no debe cambiar la qualification todavia.
+    const subAfterQualify = await Subindicator.findById(sub._id)
+    expect(subAfterQualify.qualification).toBe(0) // sin verificar = 0
+
+    // Verificar el assessment para que puntue
+    await CharacteristicAssessment.findOneAndUpdate(
+      { subindicatorId: sub._id, characteristicId: characteristic._id },
+      { verified: true }
+    )
+
+    // Publicar la evidencia (PATCH /publish) dispara otro recompute
+    await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({ verified: true })
+      .expect(200)
+
+    const subAfterPublish = await Subindicator.findById(sub._id)
+    const instAfterPublish = await IndicatorInstance.findById(indicatorInstance._id)
+
+    // Assessment verificado con 100% -> verde (3)
+    expect(subAfterPublish.qualification).toBe(3)
+    expect(instAfterPublish.qualification).toBe(3)
+  })
+
+  test('tras delete de evidencia, el semaforo se recomputa', async () => {
+    const { token: qualifierToken } = await adminAuth()
+    const { user: authorUser } = await responsibleAuth()
+    const { sub, characteristic, valuation, indicatorInstance } = await seedGraphWithThresholds()
+
+    // Crear assessment verificado manualmente para que el sub tenga qual=3
+    const ev = await seed.createEvidenceV2({
+      subindicator: sub,
+      characteristic,
+      author: authorUser._id
+    })
+    await new CharacteristicAssessment({
+      subindicatorId: sub._id,
+      characteristicId: characteristic._id,
+      criteria: [{ valuationId: valuation._id, met: true, weight: 1 }],
+      score: 1,
+      totalRubric: 1,
+      verified: true,
+      sourceOverrides: [],
+      qualifiedAt: new Date(),
+      qualifiedBy: sub.createdBy
+    }).save()
+    await Subindicator.findByIdAndUpdate(sub._id, { qualification: 3 })
+    await IndicatorInstance.findByIdAndUpdate(indicatorInstance._id, {
+      subindicators: [sub._id]
+    })
+
+    // Eliminar el assessment verificado para simular borrado
+    await CharacteristicAssessment.deleteMany({ subindicatorId: sub._id })
+
+    // Borrar la evidencia -> dispara recompute
+    await api
+      .delete(`/api/v2/evidences/${ev._id}`)
+      .set('Authorization', bearer(qualifierToken))
+      .expect(204)
+
+    const subAfterDelete = await Subindicator.findById(sub._id)
+    // Sin assessments verificados -> 0
+    expect(subAfterDelete.qualification).toBe(0)
   })
 })

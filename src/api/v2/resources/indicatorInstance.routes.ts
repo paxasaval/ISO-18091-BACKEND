@@ -1,27 +1,31 @@
-// Recurso REST /api/v2/indicator-instances sobre indicatorInstanceRepository.
+// Recurso REST /api/v2/indicator-instances re-apuntado a la capa v2
+// (IndicatorInstanceV2 / v2_indicator_instances).
 //
 // Endpoints:
-//   GET    /                 -> lista. Filtros (requieren tenant header/?tenant):
-//                                ?period=<year>&quadrant=<n>. Sin filtros y sin
-//                                tenant -> listado completo poblado.
+//   GET    /                 -> lista. Filtros:
+//                                ?period=<id>&tenant (header o query)
+//                                ?period=&quadrant=<n>  -> por cuadrante
+//                              Sin tenant: listado completo poblado.
 //   GET    /summary          -> resumen por cuadrante (1..4) con conteos por
-//                                calificacion. Requiere ?period=&tenant.
+//                                calificacion (qualify_0..qualify_3).
+//                                Requiere ?period=&tenant.
 //   GET    /:id              -> 200 (populate profundo) | 404 NOT_FOUND
-//   PUT    /:id              -> authenticate + requireAdminRole; 200 | 404
-//   DELETE /:id              -> authenticate + requireAdminRole; 204 | 404
+//   PUT    /:id              -> authenticate + requirePermission('indicator:create')
+//                              200 | 404
+//   DELETE /:id              -> authenticate + requirePermission('indicator:create')
+//                              204 | 404
 //
-// Decision REST: /summary se monta ANTES de /:id para no colisionar. El
-// filtrado por quadrant/sort sobre indicatorID poblado se hace en memoria, como
-// el legacy. Reutiliza aggregateByQuadrant del repo para el resumen.
+// Nombres limpios: gadId, indicatorInstanceId (referencia al catalogo Indicator).
+// El FE consume qualification 0-3; no cambia la forma de respuesta.
+// /summary se monta ANTES de /:id para no colisionar con el param route.
 
 import mongoose from 'mongoose'
 import { Request, Router } from 'express'
 import { z } from 'zod'
-import indicatorInstanceRepository from '../../../repositories/indicatorInstance.repository'
+import { indicatorInstanceRepository } from '../../../v2/repositories/indicator-instance.repository'
 import { NotFoundError, UnauthorizedError, ValidationError } from '../../../utils/errors'
 import { asyncHandler } from '../async-handler'
-import { authenticate } from '../auth'
-import { requireAdminRole } from '../require-admin'
+import { authenticate, requirePermission } from '../auth'
 import { noContent, ok } from '../envelope'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
@@ -31,7 +35,7 @@ const router = Router()
 // --- Schemas ---
 
 const idParamSchema = z.object({
-  id: z.string()
+  id: objectId
 })
 
 const listQuerySchema = z.object({
@@ -69,17 +73,15 @@ router.get(
     const headerTenant = req.get('tenant') ?? undefined
     const tenant = headerTenant ?? query.tenant
 
-    // Sin tenant ni filtros: listado completo poblado. Se usa un populate
-    // limpio (en vez de findAllPopulated, cuyo path legacy 'createdby' falla con
-    // strictPopulate) para mantener v2 consistente sin tocar el repo de v1.
+    // Sin tenant ni filtros: listado completo poblado.
     if (!tenant && query.period === undefined && query.quadrant === undefined) {
       const items = await indicatorInstanceRepository.findAll(
         {},
         {
           populate: [
-            { path: 'gadID' },
-            { path: 'indicatorID' },
-            { path: 'subindicators', model: 'SubIndicator' }
+            { path: 'gadId' },
+            { path: 'indicatorInstanceId' },
+            { path: 'subindicators', model: 'SubindicatorV2' }
           ]
         }
       )
@@ -93,19 +95,22 @@ router.get(
       throw new ValidationError('period is required for filtered queries')
     }
 
+    // Obtener todas las instancias del GAD/periodo y filtrar/ordenar en memoria.
+    // El campo ?period= es el valor del ano (year string) en v2, no un ObjectId.
     const items = (await indicatorInstanceRepository.findByYearAndTenant(
       query.period,
       tenant
     )) as unknown as Array<{
-      indicatorID: { quadrant: number; number: number }
+      indicatorInstanceId: { quadrant: number; number: number }
     }>
 
     const filtered =
       query.quadrant !== undefined
-        ? items.filter((i) => i.indicatorID.quadrant === query.quadrant)
+        ? items.filter((i) => i.indicatorInstanceId?.quadrant === query.quadrant)
         : items
+
     const sorted = [...filtered].sort(
-      (a, b) => a.indicatorID.number - b.indicatorID.number
+      (a, b) => (a.indicatorInstanceId?.number ?? 0) - (b.indicatorInstanceId?.number ?? 0)
     )
     return ok(res, sorted)
   })
@@ -124,11 +129,11 @@ router.get(
         query.period,
         tenant
       )) as Array<{
-        indicatorID: { quadrantName: string }
+        indicatorInstanceId: { quadrantName: string }
         qualification: number
       }>
       result.push({
-        quadrantName: rows[0]?.indicatorID.quadrantName ?? '',
+        quadrantName: rows[0]?.indicatorInstanceId?.quadrantName ?? '',
         qualify_0: rows.filter((r) => r.qualification === 0).length,
         qualify_1: rows.filter((r) => r.qualification === 1).length,
         qualify_2: rows.filter((r) => r.qualification === 2).length,
@@ -154,7 +159,7 @@ router.get(
 router.put(
   '/:id',
   authenticate,
-  requireAdminRole,
+  requirePermission('indicator:create'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
@@ -180,7 +185,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireAdminRole,
+  requirePermission('indicator:create'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const deleted = await indicatorInstanceRepository.deleteById(req.params.id)

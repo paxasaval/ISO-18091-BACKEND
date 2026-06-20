@@ -37,6 +37,7 @@ import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
 import auditService from '../../../v2/services/audit.service'
+import scoringService from '../../../v2/services/scoring.service'
 
 const router = Router()
 
@@ -255,6 +256,9 @@ router.patch(
     // Obtener todas las evidencias que referencian este source document.
     const linkedEvidences = await evidenceRepository.findAll({ sourceId: docId })
 
+    // Acumular subindicadorIds afectados para recompute en bloque.
+    const affectedSubindicatorIds: string[] = []
+
     for (const evidence of linkedEvidences) {
       const ev = evidence as unknown as {
         _id: mongoose.Types.ObjectId
@@ -298,6 +302,13 @@ router.patch(
           verified
         }
       })
+
+      affectedSubindicatorIds.push(ev.subindicatorId.toString())
+    }
+
+    // Recomputar semaforo de todos los subindicadores afectados por la propagacion.
+    if (affectedSubindicatorIds.length > 0) {
+      await scoringService.recomputeAfterSourceDocumentVerify(affectedSubindicatorIds, userId)
     }
 
     return ok(res, updated)

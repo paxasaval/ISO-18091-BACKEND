@@ -1,34 +1,36 @@
-// Recurso REST /api/v2/subindicators sobre subIndicatorRepository, con auth v2.
+// Recurso REST /api/v2/subindicators re-apuntado a la capa v2
+// (SubindicatorV2 / v2_subindicators).
 //
 // Endpoints:
 //   GET    /                       -> lista. Filtros:
-//                                       ?indicator=<id>  -> por indicadorID
-//                                       ?type=general    -> aggregate de
-//                                         subindicadores generales (mandatory)
-//                                       ?type=specific   -> aggregate de
-//                                         subindicadores especificos
+//                                       ?indicator=<id> -> por indicatorInstanceId
+//                                       ?type=general   -> mandatory===true
+//                                       ?type=specific  -> mandatory===false
 //                                     paginacion ?page=&size= con meta.
 //   GET    /:id                    -> 200 (populate profundo) | 404 NOT_FOUND
-//   POST   /                       -> authenticate + requireElevatedRole; crea y
-//                                     enlaza a la IndicatorInstance + notify. 201.
-//   PUT    /:id                    -> 200 (reemplazo) | 404 NOT_FOUND
-//   DELETE /:id                    -> 204 | 404 NOT_FOUND
+//   POST   /                       -> authenticate + requirePermission('subindicator:create')
+//                                     crea y enlaza a IndicatorInstanceV2. 201.
+//   PUT    /:id                    -> authenticate + requirePermission('subindicator:create')
+//                                     200 (reemplazo) | 404 NOT_FOUND
+//   DELETE /:id                    -> authenticate + requirePermission('subindicator:create')
+//                                     204 | 404 NOT_FOUND
 //
-// Decision REST: el filtrado por indicador se expone como ?indicator=<id> (en
-// vez de una subruta anidada bajo /indicators) para mantener el recurso plano y
-// reutilizar los metodos de repo (paginate + aggregates). Los aggregates
-// general/specific se ofrecen via ?type= para no perder esa funcionalidad del
-// dominio.
+// Nombres limpios: indicatorInstanceId, typeId, responsibleText, responsibleUserIds.
+// responsibleUserIds: expuesto en respuesta y aceptado en create/update (Tema 3).
+//
+// Los aggregates general/specific se re-implementan sobre v2_subindicators usando
+// los nombres de campo v2 (typeId, indicatorInstanceId).
 
-import mongoose from 'mongoose'
+import mongoose, { PipelineStage } from 'mongoose'
 import { Router } from 'express'
 import { z } from 'zod'
-import subIndicatorRepository from '../../../repositories/subindicator.repository'
+import { subindicatorRepository } from '../../../v2/repositories/subindicator.repository'
+import { indicatorInstanceRepository } from '../../../v2/repositories/indicator-instance.repository'
+import SubindicatorV2 from '../../../v2/models/subindicator.model'
+import TypeV2 from '../../../v2/models/type.model'
 import { NotFoundError, UnauthorizedError, ValidationError } from '../../../utils/errors'
-import notificationService from '../../../services/notification.service'
-import { NotificationType, NotificationItemType } from '../../../constants'
+import { authenticate, requirePermission } from '../auth'
 import { asyncHandler } from '../async-handler'
-import { authenticate, requireElevatedRole } from '../auth'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
@@ -39,7 +41,7 @@ const router = Router()
 // --- Schemas ---
 
 const idParamSchema = z.object({
-  id: z.string()
+  id: objectId
 })
 
 const listQuerySchema = paginationQuerySchema.extend({
@@ -48,10 +50,11 @@ const listQuerySchema = paginationQuerySchema.extend({
 })
 
 const createBodySchema = z.object({
-  indicadorID: objectId,
-  typeID: objectId,
+  indicatorInstanceId: objectId,
+  typeId: objectId,
   name: z.string().min(1),
-  responsible: z.string().optional(),
+  responsibleText: z.string().optional(),
+  responsibleUserIds: z.array(objectId).optional(),
   qualification: z.number().optional(),
   requireCover: z.boolean().optional(),
   cover: z.string().optional(),
@@ -63,18 +66,205 @@ const createBodySchema = z.object({
 })
 
 const updateBodySchema = z.object({
-  name: z.string().min(1),
-  responsible: z.string().optional(),
-  typeID: objectId.optional(),
+  name: z.string().min(1).optional(),
+  responsibleText: z.string().optional(),
+  responsibleUserIds: z.array(objectId).optional(),
+  typeId: objectId.optional(),
   qualification: z.number().optional(),
   commits: z.array(objectId).optional(),
   evidences: z.array(objectId).optional()
-})
+}).refine(
+  (val) => Object.keys(val).length > 0,
+  { message: 'at least one field is required' }
+)
 
 const toObjectIds = (ids?: string[]): mongoose.Types.ObjectId[] =>
   (ids ?? []).map((id) => new mongoose.Types.ObjectId(id))
 
-// --- Rutas ---
+// ---------------------------------------------------------------------------
+// Aggregates v2 (replican el patron del repo legacy sobre colecciones v2_*)
+// ---------------------------------------------------------------------------
+
+// Construye el aggregate de general (mandatory===true) o specific (mandatory===false)
+// sobre v2_subindicators.
+const buildMandatoryAggregateV2 = (
+  indicatorInstanceId: string,
+  mandatory: boolean
+): Promise<unknown[]> => {
+  const select = { __v: 0 }
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        indicatorInstanceId: new mongoose.Types.ObjectId(indicatorInstanceId)
+      }
+    },
+    {
+      $lookup: {
+        from: 'v2_evidences',
+        localField: 'evidences',
+        foreignField: '_id',
+        as: 'evidences',
+        pipeline: [{ $project: select }]
+      }
+    },
+    {
+      $lookup: {
+        from: 'v2_types',
+        localField: 'typeId',
+        foreignField: '_id',
+        as: 'typeId',
+        pipeline: [{ $project: select }]
+      }
+    },
+    { $unwind: { path: '$typeId', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'v2_characteristics',
+        localField: 'typeId.characteristics',
+        foreignField: '_id',
+        as: 'typeId.characteristics',
+        pipeline: [{ $project: select }]
+      }
+    },
+    { $match: { 'typeId.mandatory': mandatory } },
+    {
+      $lookup: {
+        from: 'v2_users',
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'createdBy',
+        pipeline: [{ $project: { __v: 0, password: 0 } }]
+      }
+    },
+    { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        id: '$_id',
+        indicatorInstanceId: 1,
+        requireCover: 1,
+        cover: 1,
+        observationCover: 1,
+        typeId: 1,
+        name: 1,
+        responsibleText: 1,
+        responsibleUserIds: 1,
+        qualification: 1,
+        score: 1,
+        totalScore: 1,
+        created: 1,
+        lastUpdate: 1,
+        state: 1,
+        createdBy: 1,
+        commits: 1,
+        evidences: 1,
+        _id: 0
+      }
+    }
+  ]
+  return SubindicatorV2.aggregate(pipeline).exec()
+}
+
+const buildSpecificPaginatedV2 = (
+  indicatorInstanceId: string,
+  offset: number,
+  limit: number
+): Promise<unknown[]> => {
+  const select = { __v: 0 }
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        indicatorInstanceId: new mongoose.Types.ObjectId(indicatorInstanceId)
+      }
+    },
+    {
+      $lookup: {
+        from: 'v2_evidences',
+        localField: 'evidences',
+        foreignField: '_id',
+        as: 'evidences',
+        pipeline: [{ $project: select }]
+      }
+    },
+    {
+      $lookup: {
+        from: 'v2_types',
+        localField: 'typeId',
+        foreignField: '_id',
+        as: 'typeId',
+        pipeline: [{ $project: select }]
+      }
+    },
+    { $unwind: { path: '$typeId', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'v2_characteristics',
+        localField: 'typeId.characteristics',
+        foreignField: '_id',
+        as: 'typeId.characteristics',
+        pipeline: [{ $project: select }]
+      }
+    },
+    { $match: { 'typeId.mandatory': false } },
+    {
+      $lookup: {
+        from: 'v2_users',
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'createdBy',
+        pipeline: [{ $project: { __v: 0, password: 0 } }]
+      }
+    },
+    { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        id: '$_id',
+        indicatorInstanceId: 1,
+        requireCover: 1,
+        cover: 1,
+        observationCover: 1,
+        typeId: 1,
+        name: 1,
+        responsibleText: 1,
+        responsibleUserIds: 1,
+        qualification: 1,
+        score: 1,
+        totalScore: 1,
+        created: 1,
+        lastUpdate: 1,
+        state: 1,
+        createdBy: 1,
+        commits: 1,
+        evidences: 1,
+        _id: 0
+      }
+    },
+    {
+      $facet: {
+        totalCount: [{ $count: 'count' }],
+        results: [{ $skip: offset }, { $limit: limit }]
+      }
+    }
+  ]
+  return SubindicatorV2.aggregate(pipeline).exec()
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// Enlaza el subindicador creado a la IndicatorInstanceV2.
+const linkSubToInstance = async (
+  instanceId: mongoose.Types.ObjectId,
+  subId: mongoose.Types.ObjectId
+): Promise<void> => {
+  await indicatorInstanceRepository.updateById(instanceId.toString(), {
+    $push: { subindicators: subId }
+  } as unknown as Parameters<typeof indicatorInstanceRepository.updateById>[1])
+}
+
+// ---------------------------------------------------------------------------
+// Rutas
+// ---------------------------------------------------------------------------
 
 router.get(
   '/',
@@ -86,19 +276,17 @@ router.get(
     const size = pg.size
     const offset = (page - 1) * size
 
-    // Aggregates por tipo requieren un indicador objetivo.
+    // Aggregates por tipo requieren indicador objetivo.
     if (query.type) {
       if (!query.indicator) {
         throw new ValidationError('indicator is required for type aggregates')
       }
       if (query.type === 'general') {
-        const items = await subIndicatorRepository.aggregateGeneral(
-          query.indicator
-        )
+        const items = await buildMandatoryAggregateV2(query.indicator, true)
         return ok(res, items)
       }
-      // specific: el repo devuelve [{ totalCount, results }] via $facet.
-      const data = (await subIndicatorRepository.aggregateSpecificPaginated(
+      // specific: paginated via $facet
+      const data = (await buildSpecificPaginatedV2(
         query.indicator,
         offset,
         size
@@ -110,28 +298,32 @@ router.get(
       })
     }
 
-    const filter = query.indicator ? { indicadorID: query.indicator } : {}
+    const filter = query.indicator
+      ? { indicatorInstanceId: new mongoose.Types.ObjectId(query.indicator) }
+      : {}
 
     if (!pg.enabled) {
-      const items = await subIndicatorRepository.findAll(filter, {
+      const items = await subindicatorRepository.findAll(filter, {
         populate: [
-          { path: 'evidences', model: 'Evidence' },
-          { path: 'typeID', populate: { path: 'characteristics' } },
-          { path: 'createdBy' }
+          { path: 'evidences', model: 'EvidenceV2' },
+          { path: 'typeId', populate: { path: 'characteristics' } },
+          { path: 'createdBy', select: 'name email' },
+          { path: 'responsibleUserIds', select: 'name email' }
         ]
       })
       return ok(res, items)
     }
 
-    const { items, total } = await subIndicatorRepository.findPage(
+    const { items, total } = await subindicatorRepository.findPage(
       filter,
       page,
       size,
       {
         populate: [
-          { path: 'evidences', model: 'Evidence' },
-          { path: 'typeID', populate: { path: 'characteristics' } },
-          { path: 'createdBy' }
+          { path: 'evidences', model: 'EvidenceV2' },
+          { path: 'typeId', populate: { path: 'characteristics' } },
+          { path: 'createdBy', select: 'name email' },
+          { path: 'responsibleUserIds', select: 'name email' }
         ]
       }
     )
@@ -145,7 +337,15 @@ router.get(
   '/:id',
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
-    const item = await subIndicatorRepository.findByIdDeep(req.params.id)
+    const item = await subindicatorRepository.findById(req.params.id, {
+      populate: [
+        { path: 'evidences', model: 'EvidenceV2' },
+        { path: 'typeId', populate: { path: 'characteristics' } },
+        { path: 'createdBy', select: 'name email' },
+        { path: 'responsibleUserIds', select: 'name email' },
+        { path: 'indicatorInstanceId' }
+      ]
+    })
     if (!item) {
       throw new NotFoundError('subindicator not found')
     }
@@ -156,7 +356,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireElevatedRole,
+  requirePermission('subindicator:create'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createBodySchema>
@@ -166,60 +366,73 @@ router.post(
     }
     const user = new mongoose.Types.ObjectId(userId)
     const now = new Date()
-    const saved = await subIndicatorRepository.createAndLinkToIndicator({
-      typeID: new mongoose.Types.ObjectId(body.typeID),
-      indicadorID: new mongoose.Types.ObjectId(body.indicadorID),
+
+    // Verificar que el Type existe en v2.
+    const type = await TypeV2.findById(body.typeId).exec()
+    if (!type) {
+      throw new NotFoundError('type not found')
+    }
+
+    // Verificar que la IndicatorInstance existe en v2.
+    const instance = await indicatorInstanceRepository.findById(body.indicatorInstanceId)
+    if (!instance) {
+      throw new NotFoundError('indicator instance not found')
+    }
+    const instanceId = (instance as unknown as { _id: mongoose.Types.ObjectId })._id
+
+    const saved = await subindicatorRepository.create({
+      typeId: new mongoose.Types.ObjectId(body.typeId),
+      indicatorInstanceId: instanceId,
       name: body.name,
       requireCover: body.requireCover ?? false,
       cover: body.cover,
       observationCover: body.observationCover,
       isPlanned: body.isPlanned,
       isDiagnosed: body.isDiagnosed,
-      responsible: body.responsible ?? 'Administracion',
-      qualification: body.qualification ?? 0,
+      responsibleText: body.responsibleText ?? 'Administracion',
+      responsibleUserIds: toObjectIds(body.responsibleUserIds),
+      qualification: 0,
+      score: 0,
+      totalScore: 0,
+      autoQualification: 0,
+      state: true,
       created: now,
       lastUpdate: now,
-      state: false,
       createdBy: user,
       commits: toObjectIds(body.commits),
       evidences: toObjectIds(body.evidences)
-    } as unknown as Parameters<
-      typeof subIndicatorRepository.createAndLinkToIndicator
-    >[0])
-    // notify recibe el req real (lo usan otras rutas del modulo de dominio).
-    await notificationService.notify(
-      NotificationType.Added,
-      user,
-      NotificationItemType.Subindicator,
-      String(saved.id),
-      req
-    )
+    } as unknown as Parameters<typeof subindicatorRepository.create>[0])
+
+    // Enlazar a la IndicatorInstance v2.
+    const savedId = (saved as unknown as { _id: mongoose.Types.ObjectId })._id
+    await linkSubToInstance(instanceId, savedId)
+
     return created(res, saved)
   })
 )
 
 router.put(
   '/:id',
+  authenticate,
+  requirePermission('subindicator:create'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
-    const update: Record<string, unknown> = {
-      name: body.name,
-      lastUpdate: new Date()
+    const update: Record<string, unknown> = { lastUpdate: new Date() }
+
+    if (body.name !== undefined) update.name = body.name
+    if (body.responsibleText !== undefined) update.responsibleText = body.responsibleText
+    if (body.responsibleUserIds !== undefined) {
+      update.responsibleUserIds = toObjectIds(body.responsibleUserIds)
     }
-    if (body.responsible !== undefined) update.responsible = body.responsible
-    if (body.typeID !== undefined) update.typeID = body.typeID
-    if (body.qualification !== undefined) {
-      update.qualification = body.qualification
+    if (body.typeId !== undefined) {
+      update.typeId = new mongoose.Types.ObjectId(body.typeId)
     }
+    if (body.qualification !== undefined) update.qualification = body.qualification
     if (body.commits !== undefined) update.commits = toObjectIds(body.commits)
-    if (body.evidences !== undefined) {
-      update.evidences = toObjectIds(body.evidences)
-    }
-    const updated = await subIndicatorRepository.updateById(
-      req.params.id,
-      update
-    )
+    if (body.evidences !== undefined) update.evidences = toObjectIds(body.evidences)
+
+    const updated = await subindicatorRepository.updateById(req.params.id, update)
     if (!updated) {
       throw new NotFoundError('subindicator not found')
     }
@@ -229,9 +442,11 @@ router.put(
 
 router.delete(
   '/:id',
+  authenticate,
+  requirePermission('subindicator:create'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
-    const deleted = await subIndicatorRepository.deleteById(req.params.id)
+    const deleted = await subindicatorRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('subindicator not found')
     }
