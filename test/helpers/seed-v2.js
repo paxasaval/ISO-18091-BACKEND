@@ -17,11 +17,16 @@ const Characteristic = require('../../src/v2/models/characteristic.model')
 const Valuation = require('../../src/v2/models/valuation.model')
 const Ods = require('../../src/v2/models/ods.model')
 const Indicator = require('../../src/v2/models/indicator.model')
+const IndicatorInstance = require('../../src/v2/models/indicator-instance.model')
 const Period = require('../../src/v2/models/period.model')
 const Commit = require('../../src/v2/models/commit.model')
 const Notification = require('../../src/v2/models/notification.model')
 const News = require('../../src/v2/models/news.model')
 const Sponsor = require('../../src/v2/models/sponsor.model')
+const Subindicator = require('../../src/v2/models/subindicator.model')
+const Evidence = require('../../src/v2/models/evidence.model')
+const SourceDocument = require('../../src/v2/models/source-document.model')
+const CharacteristicAssessment = require('../../src/v2/models/characteristic-assessment.model')
 
 // Devuelve el _id si recibe un documento, o el valor tal cual si ya es un id.
 const idOf = (docOrId) => (docOrId && docOrId._id ? docOrId._id : docOrId)
@@ -226,6 +231,119 @@ const createSponsorV2 = async (overrides = {}) => {
   }).save()
 }
 
+const createIndicatorInstanceV2 = async (overrides = {}) => {
+  const { gad: gadOv, indicator: indOv, period: periodOv, createdBy: byOv, ...rest } = overrides
+  const gad = gadOv || (await createGadV2())
+  const indicator = indOv || (await createIndicatorV2())
+  const period = periodOv || (await createPeriodV2({ gad }))
+  const createdBy = byOv || (await createUserV2({ gadId: idOf(gad) })).user._id
+  return new IndicatorInstance({
+    gadId: idOf(gad),
+    indicatorInstanceId: idOf(indicator),
+    period: idOf(period),
+    year: '2026',
+    qualification: 0,
+    create: new Date(),
+    state: true,
+    createdBy: idOf(createdBy),
+    subindicators: [],
+    ...rest
+  }).save()
+}
+
+const createSubindicatorV2 = async (overrides = {}) => {
+  const {
+    indicatorInstance: instOv,
+    type: typeOv,
+    createdBy: byOv,
+    ...rest
+  } = overrides
+  const indicatorInstance = instOv || (await createIndicatorInstanceV2())
+  const type = typeOv || (await createTypeV2())
+  const createdBy = byOv || (await createUserV2()).user._id
+  return new Subindicator({
+    typeId: idOf(type),
+    indicatorInstanceId: idOf(indicatorInstance),
+    name: 'Subindicador Test',
+    requireCover: false,
+    responsibleText: 'Responsable Test',
+    responsibleUserIds: [],
+    qualification: 0,
+    score: 0,
+    totalScore: 0,
+    autoQualification: 0,
+    state: true,
+    created: new Date(),
+    commits: [],
+    evidences: [],
+    ...rest,
+    createdBy: idOf(createdBy)
+  }).save()
+}
+
+const createEvidenceV2 = async (overrides = {}) => {
+  const {
+    subindicator: subOv,
+    characteristic: chOv,
+    author: authorOv,
+    ...rest
+  } = overrides
+  const subindicator = subOv || (await createSubindicatorV2())
+  const characteristic = chOv || (await createCharacteristicV2())
+  const author = authorOv || (await createUserV2()).user._id
+  return new Evidence({
+    subindicatorId: idOf(subindicator),
+    characteristicId: idOf(characteristic),
+    name: 'Evidencia Test',
+    link: 'http://test/doc.pdf',
+    kind: 'principal',
+    verified: false,
+    commits: [],
+    extras: {},
+    ...rest,
+    author: idOf(author)
+  }).save()
+}
+
+const createSourceDocumentV2 = async (overrides = {}) => {
+  const { gad: gadOv, uploadedBy: byOv, ...rest } = overrides
+  const gad = gadOv || (await createGadV2())
+  const uploadedBy = byOv || (await createUserV2({ gadId: idOf(gad) })).user._id
+  return new SourceDocument({
+    gadId: idOf(gad),
+    name: 'POA Test',
+    link: 'http://test/poa.pdf',
+    verified: false,
+    createdAt: new Date(),
+    ...rest,
+    uploadedBy: idOf(uploadedBy)
+  }).save()
+}
+
+const createCharacteristicAssessmentV2 = async (overrides = {}) => {
+  const {
+    subindicator: subOv,
+    characteristic: chOv,
+    qualifiedBy: byOv,
+    ...rest
+  } = overrides
+  const subindicator = subOv || (await createSubindicatorV2())
+  const characteristic = chOv || (await createCharacteristicV2())
+  const qualifiedBy = byOv || (await createUserV2()).user._id
+  return new CharacteristicAssessment({
+    subindicatorId: idOf(subindicator),
+    characteristicId: idOf(characteristic),
+    criteria: [],
+    score: 0,
+    totalRubric: 0,
+    verified: false,
+    sourceOverrides: [],
+    qualifiedAt: new Date(),
+    ...rest,
+    qualifiedBy: idOf(qualifiedBy)
+  }).save()
+}
+
 module.exports = {
   signToken,
   createRolV2,
@@ -236,9 +354,14 @@ module.exports = {
   createTypeV2,
   createOdsV2,
   createIndicatorV2,
+  createIndicatorInstanceV2,
   createPeriodV2,
   createCommitV2,
   createNotificationV2,
   createNewsV2,
-  createSponsorV2
+  createSponsorV2,
+  createSubindicatorV2,
+  createEvidenceV2,
+  createSourceDocumentV2,
+  createCharacteristicAssessmentV2
 }

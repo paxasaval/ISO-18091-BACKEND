@@ -1,10 +1,14 @@
+// Tests de /api/v2/evidences re-apuntado a la capa v2 (EvidenceV2 / v2_evidences).
+// Usa seed-v2 y el grafo v2 (gad/indicatorInstance/subindicator/type/characteristic/
+// valuation v2). Los tests de v1 (subindicadores legacy, recalc) son legacy y ya
+// no aplican a este recurso — v2 delega el calculo 0-3 a Tema 4.
+
 const supertest = require('supertest')
 const app = require('../../app')
 const db = require('../helpers/db')
-const seed = require('../helpers/seed')
-const seedV2 = require('../helpers/seed-v2')
-const Evidence = require('../../models/evidence')
-const SubIndicator = require('../../models/subindicator')
+const seed = require('../helpers/seed-v2')
+const Evidence = require('../../src/v2/models/evidence.model')
+const CharacteristicAssessment = require('../../src/v2/models/characteristic-assessment.model')
 
 const api = supertest(app)
 
@@ -18,83 +22,106 @@ afterAll(async () => {
   await db.disconnect()
 })
 
-const elevatedAuth = async () => {
-  const rol = await seedV2.createRolV2({ name: 'Administrador' })
-  const { user } = await seed.createUser({ rol })
-  const token = seed.signToken({
-    id: user._id.toString(),
-    rol: rol._id.toString()
-  })
-  return { rol, user, token }
-}
-
-const responsibleAuth = async () => {
-  const rol = await seedV2.createRolV2({ name: 'Responsable' })
-  const { user } = await seed.createUser({ rol })
-  const token = seed.signToken({
-    id: user._id.toString(),
-    rol: rol._id.toString()
-  })
-  return { rol, user, token }
-}
-
-const baseUserAuth = async () => {
-  const rol = await seedV2.createRolV2({ name: 'Ciudadano' })
-  const { user } = await seed.createUser({ rol })
-  const token = seed.signToken({
-    id: user._id.toString(),
-    rol: rol._id.toString()
-  })
-  return { rol, user, token }
-}
-
 const bearer = (token) => `Bearer ${token}`
 
-// Construye el grafo completo necesario para el recalc:
-// gad -> indicatorInstance -> subindicator (typeID con characteristics).
-const seedGraph = async () => {
-  const gad = await seed.createGad({ publishAuto: false })
-  const characteristic = await seed.createCharacteristic({ score: 5, tier: 1 })
-  const type = await seed.createType({
-    mandatory: true,
+// Administrador: tiene todos los permisos.
+const adminAuth = async () => {
+  const rol = await seed.createRolV2({ name: 'Administrador' })
+  const { user } = await seed.createUserV2({ rol })
+  const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
+  return { rol, user, token }
+}
+
+// Responsable: tiene evidence:upload pero no evidence:qualify ni evidence:publish.
+const responsibleAuth = async () => {
+  const rol = await seed.createRolV2({ name: 'Responsable' })
+  const { user } = await seed.createUserV2({ rol })
+  const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
+  return { rol, user, token }
+}
+
+// Ciudadano: sin permisos de escritura.
+const citizenAuth = async () => {
+  const rol = await seed.createRolV2({ name: 'Ciudadano' })
+  const { user } = await seed.createUserV2({ rol })
+  const token = seed.signToken({ id: user._id.toString(), rol: rol._id.toString() })
+  return { rol, user, token }
+}
+
+// Crea el grafo v2 minimo: subindicador + caracteristica con valuacion.
+const seedGraphV2 = async () => {
+  const gad = await seed.createGadV2()
+  const valuation = await seed.createValuationV2({ maxValue: 1 })
+  const characteristic = await seed.createCharacteristicV2({
+    valuations: [valuation._id]
+  })
+  const type = await seed.createTypeV2({
     characteristics: [characteristic._id]
   })
-  const instance = await seed.createIndicatorInstance({ gadID: gad })
-  const sub = await seed.createSubIndicator({
-    indicadorID: instance,
-    typeID: type
+  const indicatorInstance = await seed.createIndicatorInstanceV2({ gad })
+  const sub = await seed.createSubindicatorV2({
+    indicatorInstance,
+    type
   })
-  return { gad, characteristic, type, instance, sub }
+  return { gad, valuation, characteristic, type, indicatorInstance, sub }
 }
 
 describe('GET /api/v2/evidences', () => {
-  test('200 envelope { data }', async () => {
-    await seed.createEvidence()
+  test('200 envelope { data } lista vacia', async () => {
     const res = await api.get('/api/v2/evidences').expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
+    expect(res.body.data).toHaveLength(0)
+  })
+
+  test('200 lista con una evidencia v2', async () => {
+    await seed.createEvidenceV2()
+    const res = await api.get('/api/v2/evidences').expect(200)
     expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].id).toBeDefined()
+    expect(res.body.data[0].kind).toBeDefined()
   })
 
   test('filtra por ?subindicator=', async () => {
-    const ev = await seed.createEvidence()
-    await seed.createEvidence()
+    const { sub } = await seedGraphV2()
+    await seed.createEvidenceV2({ subindicator: sub })
+    await seed.createEvidenceV2()
     const res = await api
-      .get(`/api/v2/evidences?subindicator=${ev.subIndicatorID}`)
+      .get(`/api/v2/evidences?subindicator=${sub._id}`)
       .expect(200)
     expect(res.body.data).toHaveLength(1)
   })
 
-  test('400 size invalido', async () => {
+  test('filtra por ?characteristic=', async () => {
+    const { characteristic } = await seedGraphV2()
+    await seed.createEvidenceV2({ characteristic })
+    await seed.createEvidenceV2()
+    const res = await api
+      .get(`/api/v2/evidences?characteristic=${characteristic._id}`)
+      .expect(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  test('paginacion: meta.pagination', async () => {
+    for (let i = 0; i < 3; i++) await seed.createEvidenceV2()
+    const res = await api
+      .get('/api/v2/evidences?page=1&size=2')
+      .expect(200)
+    expect(res.body.data).toHaveLength(2)
+    expect(res.body.meta.pagination.total).toBe(3)
+  })
+
+  test('400 VALIDATION_ERROR size invalido', async () => {
     const res = await api.get('/api/v2/evidences?size=0').expect(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 })
 
 describe('GET /api/v2/evidences/:id', () => {
-  test('200', async () => {
-    const ev = await seed.createEvidence()
+  test('200 devuelve evidencia con autor', async () => {
+    const ev = await seed.createEvidenceV2()
     const res = await api.get(`/api/v2/evidences/${ev._id}`).expect(200)
     expect(res.body.data.id).toBe(ev._id.toString())
+    expect(res.body.data.kind).toBeDefined()
   })
 
   test('404 NOT_FOUND', async () => {
@@ -106,168 +133,187 @@ describe('GET /api/v2/evidences/:id', () => {
 
   test('400 INVALID_ID', async () => {
     const res = await api.get('/api/v2/evidences/bad').expect(400)
-    expect(res.body.error.code).toBe('INVALID_ID')
-  })
-})
-
-describe('POST /api/v2/evidences (auth)', () => {
-  test('401 sin token', async () => {
-    const { sub, characteristic } = await seedGraph()
-    const res = await api
-      .post('/api/v2/evidences')
-      .send({
-        characteristicID: characteristic._id.toString(),
-        subIndicatorID: sub._id.toString(),
-        name: 'Ev'
-      })
-      .expect(401)
-    expect(res.body.error.code).toBe('UNAUTHORIZED')
-  })
-
-  test('403 con rol base (Ciudadano)', async () => {
-    const { token } = await baseUserAuth()
-    const { sub, characteristic } = await seedGraph()
-    const res = await api
-      .post('/api/v2/evidences')
-      .set('Authorization', bearer(token))
-      .send({
-        characteristicID: characteristic._id.toString(),
-        subIndicatorID: sub._id.toString(),
-        name: 'Ev'
-      })
-      .expect(403)
-    expect(res.body.error.code).toBe('FORBIDDEN')
-  })
-
-  test('201 crea + recalcula subindicador (flujo POST evidence -> recalc)', async () => {
-    const { token } = await responsibleAuth()
-    const { gad, sub, characteristic } = await seedGraph()
-    const res = await api
-      .post('/api/v2/evidences')
-      .set('Authorization', bearer(token))
-      .set('tenant', gad._id.toString())
-      .send({
-        characteristicID: characteristic._id.toString(),
-        subIndicatorID: sub._id.toString(),
-        name: 'Ev Nueva',
-        link: 'http://test/doc',
-        qualification: 3
-      })
-      .expect(201)
-    expect(res.body.data.id).toBeDefined()
-    // recalcSubindicatorFromEvidence con includeNewEvidence:true: 1 evidencia
-    // qualify=3 sobre la unica caracteristica (score 5) -> score=3, totalScore=5,
-    // percent 0.6 -> qualification 2.
-    const updatedSub = await SubIndicator.findById(sub._id)
-    expect(updatedSub.totalScore).toBe(5)
-    expect(updatedSub.score).toBe(3)
-    expect(updatedSub.qualification).toBe(2)
-  })
-
-  test('400 body invalido', async () => {
-    const { token } = await responsibleAuth()
-    const res = await api
-      .post('/api/v2/evidences')
-      .set('Authorization', bearer(token))
-      .send({ name: 'x' })
-      .expect(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 })
 
-describe('PUT /api/v2/evidences/:id/qualify (ADMIN)', () => {
+describe('POST /api/v2/evidences (evidence:upload)', () => {
   test('401 sin token', async () => {
-    const ev = await seed.createEvidence()
+    const { sub, characteristic } = await seedGraphV2()
     const res = await api
-      .put(`/api/v2/evidences/${ev._id}/qualify`)
-      .send({ qualification: 2 })
+      .post('/api/v2/evidences')
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Ev',
+        link: 'http://test'
+      })
       .expect(401)
     expect(res.body.error.code).toBe('UNAUTHORIZED')
   })
 
-  test('403 con rol Responsable (no ADMIN)', async () => {
-    const { token } = await responsibleAuth()
-    const ev = await seed.createEvidence()
+  test('403 Ciudadano sin evidence:upload', async () => {
+    const { token } = await citizenAuth()
+    const { sub, characteristic } = await seedGraphV2()
     const res = await api
-      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .post('/api/v2/evidences')
       .set('Authorization', bearer(token))
-      .send({ qualification: 2 })
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Ev',
+        link: 'http://test'
+      })
       .expect(403)
     expect(res.body.error.code).toBe('FORBIDDEN')
   })
 
-  test('200 califica (ADMIN)', async () => {
-    const { token, user } = await elevatedAuth()
-    const { gad, sub, characteristic } = await seedGraph()
-    const ev = await seed.createEvidence({
-      subIndicatorID: sub,
-      characteristicID: characteristic
-    })
+  test('201 crea evidencia con author desde token (Responsable)', async () => {
+    const { token, user } = await responsibleAuth()
+    const { sub, characteristic } = await seedGraphV2()
     const res = await api
-      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .post('/api/v2/evidences')
       .set('Authorization', bearer(token))
-      .set('tenant', gad._id.toString())
-      .send({ qualification: 3, user: user._id.toString(), rubric: [] })
-      .expect(200)
-    expect(res.body.data.qualification).toBe(3)
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Evidencia Nueva',
+        link: 'http://test/doc.pdf',
+        kind: 'principal',
+        note: 'una nota'
+      })
+      .expect(201)
+    expect(res.body.data.id).toBeDefined()
+    expect(res.body.data.name).toBe('Evidencia Nueva')
+    expect(res.body.data.kind).toBe('principal')
+    // author SIEMPRE del token, no del body
+    expect(res.body.data.author).toBe(user._id.toString())
+    expect(res.body.data.verified).toBe(false)
   })
 
-  test('404 qualify sobre evidencia inexistente', async () => {
-    const { token } = await elevatedAuth()
+  test('201 crea evidencia complementaria con sourceId y pages', async () => {
+    const { token, user } = await adminAuth()
+    const { sub, characteristic } = await seedGraphV2()
+    const gad = await seed.createGadV2()
+    const sourceDoc = await seed.createSourceDocumentV2({ gad })
     const res = await api
-      .put('/api/v2/evidences/646172dcdc1f126cd5207c05/qualify')
+      .post('/api/v2/evidences')
       .set('Authorization', bearer(token))
-      .send({ qualification: 2, rubric: [] })
-      .expect(404)
-    expect(res.body.error.code).toBe('NOT_FOUND')
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Referencia POA',
+        // link puede omitirse si sourceId esta presente
+        sourceId: sourceDoc._id.toString(),
+        pages: '12-15',
+        kind: 'complementaria'
+      })
+      .expect(201)
+    expect(res.body.data.kind).toBe('complementaria')
+    expect(res.body.data.sourceId).toBe(sourceDoc._id.toString())
+    expect(res.body.data.pages).toBe('12-15')
+    expect(res.body.data.author).toBe(user._id.toString())
+  })
+
+  test('400 VALIDATION_ERROR sin link ni sourceId', async () => {
+    const { token } = await responsibleAuth()
+    const { sub, characteristic } = await seedGraphV2()
+    const res = await api
+      .post('/api/v2/evidences')
+      .set('Authorization', bearer(token))
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Ev sin link'
+      })
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  test('400 VALIDATION_ERROR body invalido (sin name)', async () => {
+    const { token } = await responsibleAuth()
+    const { sub, characteristic } = await seedGraphV2()
+    const res = await api
+      .post('/api/v2/evidences')
+      .set('Authorization', bearer(token))
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        link: 'http://test'
+      })
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  test('author SIEMPRE del token (ignora author en body)', async () => {
+    const { token, user } = await adminAuth()
+    const { sub, characteristic } = await seedGraphV2()
+    const otherUser = await seed.createUserV2()
+    const res = await api
+      .post('/api/v2/evidences')
+      .set('Authorization', bearer(token))
+      .send({
+        characteristicId: characteristic._id.toString(),
+        subindicatorId: sub._id.toString(),
+        name: 'Ev',
+        link: 'http://test',
+        // Intentar inyectar un author diferente en el body (debe ignorarse)
+        author: otherUser.user._id.toString()
+      })
+      .expect(201)
+    // El author debe ser el del token, no el del body
+    expect(res.body.data.author).toBe(user._id.toString())
   })
 })
 
-describe('PUT /api/v2/evidences/:id', () => {
-  test('200 actualiza', async () => {
-    const ev = await seed.createEvidence()
+describe('PUT /api/v2/evidences/:id (evidence:upload)', () => {
+  test('200 actualiza metadatos', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2()
     const res = await api
       .put(`/api/v2/evidences/${ev._id}`)
-      .send({
-        name: 'Editada',
-        characteristicID: ev.characteristicID.toString(),
-        subIndicatorID: ev.subIndicatorID.toString()
-      })
+      .set('Authorization', bearer(token))
+      .send({ name: 'Nombre Editado', kind: 'complementaria' })
       .expect(200)
-    expect(res.body.data.name).toBe('Editada')
+    expect(res.body.data.name).toBe('Nombre Editado')
+    expect(res.body.data.kind).toBe('complementaria')
   })
 
   test('404 NOT_FOUND', async () => {
+    const { token } = await adminAuth()
     const res = await api
       .put('/api/v2/evidences/646172dcdc1f126cd5207c05')
-      .send({
-        name: 'x',
-        characteristicID: '646172dcdc1f126cd5207c05',
-        subIndicatorID: '646172dcdc1f126cd5207c05'
-      })
+      .set('Authorization', bearer(token))
+      .send({ name: 'x' })
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
   })
-})
 
-describe('DELETE /api/v2/evidences/:id (ADMIN)', () => {
-  test('403 con rol Responsable', async () => {
-    const { token } = await responsibleAuth()
-    const ev = await seed.createEvidence()
+  test('400 sin campos a actualizar', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2()
     const res = await api
-      .delete(`/api/v2/evidences/${ev._id}`)
+      .put(`/api/v2/evidences/${ev._id}`)
       .set('Authorization', bearer(token))
-      .expect(403)
-    expect(res.body.error.code).toBe('FORBIDDEN')
+      .send({})
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 
-  test('204 elimina y re-califica (ADMIN)', async () => {
-    const { token } = await elevatedAuth()
-    const { sub, characteristic } = await seedGraph()
-    const ev = await seed.createEvidence({
-      subIndicatorID: sub,
-      characteristicID: characteristic
-    })
+  test('401 sin token', async () => {
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}`)
+      .send({ name: 'x' })
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
+})
+
+describe('DELETE /api/v2/evidences/:id (evidence:qualify)', () => {
+  test('204 elimina (Administrador con evidence:qualify)', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2()
     await api
       .delete(`/api/v2/evidences/${ev._id}`)
       .set('Authorization', bearer(token))
@@ -275,11 +321,274 @@ describe('DELETE /api/v2/evidences/:id (ADMIN)', () => {
     expect(await Evidence.findById(ev._id)).toBeNull()
   })
 
-  test('404 DELETE NOT_FOUND', async () => {
-    const { token } = await elevatedAuth()
+  test('403 Responsable sin evidence:qualify', async () => {
+    const { token } = await responsibleAuth()
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .delete(`/api/v2/evidences/${ev._id}`)
+      .set('Authorization', bearer(token))
+      .expect(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+  })
+
+  test('404 NOT_FOUND', async () => {
+    const { token } = await adminAuth()
     const res = await api
       .delete('/api/v2/evidences/646172dcdc1f126cd5207c05')
       .set('Authorization', bearer(token))
+      .expect(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  test('401 sin token', async () => {
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .delete(`/api/v2/evidences/${ev._id}`)
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
+})
+
+describe('PUT /api/v2/evidences/:id/qualify (evidence:qualify, segregacion)', () => {
+  test('401 sin token', async () => {
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .send({ criteria: [] })
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
+
+  test('403 Responsable sin evidence:qualify', async () => {
+    const { token } = await responsibleAuth()
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(token))
+      .send({ criteria: [] })
+      .expect(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+  })
+
+  test('403 segregacion: el autor no puede calificar su propia evidencia', async () => {
+    const { token, user } = await adminAuth()
+    // Crear evidencia con el mismo usuario como author
+    const ev = await seed.createEvidenceV2({ author: user._id })
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(token))
+      .send({ criteria: [] })
+      .expect(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+    expect(res.body.error.message).toMatch(/author.*cannot qualify|cannot qualify.*own/i)
+  })
+
+  test('200 califica y crea CharacteristicAssessmentV2', async () => {
+    // Evaluador (admin) y autor distintos
+    const { token: qualifierToken } = await adminAuth()
+    const { user: authorUser } = await responsibleAuth()
+    const { sub, characteristic, valuation } = await seedGraphV2()
+
+    const ev = await seed.createEvidenceV2({
+      subindicator: sub,
+      characteristic,
+      author: authorUser._id
+    })
+
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({
+        criteria: [
+          { valuationId: valuation._id.toString(), met: true, weight: 1 }
+        ]
+      })
+      .expect(200)
+
+    expect(res.body.data.assessment).toBeDefined()
+    expect(res.body.data.assessment.score).toBe(1)
+    expect(res.body.data.assessment.totalRubric).toBe(1)
+    expect(res.body.data.assessment.criteria).toHaveLength(1)
+    expect(res.body.data.assessment.criteria[0].met).toBe(true)
+
+    // Verificar que se creo el assessment en la BD
+    const assessment = await CharacteristicAssessment.findOne({
+      subindicatorId: sub._id,
+      characteristicId: characteristic._id
+    })
+    expect(assessment).not.toBeNull()
+    expect(assessment.score).toBe(1)
+  })
+
+  test('200 re-califica: actualiza el assessment existente', async () => {
+    const { token: qualifierToken } = await adminAuth()
+    const { user: authorUser } = await responsibleAuth()
+    const { sub, characteristic, valuation } = await seedGraphV2()
+
+    const ev = await seed.createEvidenceV2({
+      subindicator: sub,
+      characteristic,
+      author: authorUser._id
+    })
+
+    // Primera calificacion
+    await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({
+        criteria: [
+          { valuationId: valuation._id.toString(), met: false, weight: 1 }
+        ]
+      })
+      .expect(200)
+
+    // Segunda calificacion (re-califica)
+    const res2 = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({
+        criteria: [
+          { valuationId: valuation._id.toString(), met: true, weight: 1 }
+        ]
+      })
+      .expect(200)
+
+    expect(res2.body.data.assessment.score).toBe(1)
+
+    // Solo debe haber UN assessment (upsert, no duplicado)
+    const count = await CharacteristicAssessment.countDocuments({
+      subindicatorId: sub._id,
+      characteristicId: characteristic._id
+    })
+    expect(count).toBe(1)
+  })
+
+  test('404 qualify sobre evidencia inexistente', async () => {
+    const { token } = await adminAuth()
+    const res = await api
+      .put('/api/v2/evidences/646172dcdc1f126cd5207c05/qualify')
+      .set('Authorization', bearer(token))
+      .send({ criteria: [] })
+      .expect(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  test('400 VALIDATION_ERROR criteria invalido', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(token))
+      .send({ criteria: 'no-es-array' })
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('PATCH /api/v2/evidences/:id/publish (evidence:publish)', () => {
+  test('401 sin token', async () => {
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .send({ verified: true })
+      .expect(401)
+    expect(res.body.error.code).toBe('UNAUTHORIZED')
+  })
+
+  test('403 Responsable sin evidence:publish', async () => {
+    const { token } = await responsibleAuth()
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .set('Authorization', bearer(token))
+      .send({ verified: true })
+      .expect(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+  })
+
+  test('200 publica (verified=true)', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2({ verified: false })
+    const res = await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .set('Authorization', bearer(token))
+      .send({ verified: true })
+      .expect(200)
+    expect(res.body.data.verified).toBe(true)
+  })
+
+  test('200 despublica (verified=false)', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2({ verified: true })
+    const res = await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .set('Authorization', bearer(token))
+      .send({ verified: false })
+      .expect(200)
+    expect(res.body.data.verified).toBe(false)
+  })
+
+  test('404 NOT_FOUND', async () => {
+    const { token } = await adminAuth()
+    const res = await api
+      .patch('/api/v2/evidences/646172dcdc1f126cd5207c05/publish')
+      .set('Authorization', bearer(token))
+      .send({ verified: true })
+      .expect(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  test('400 VALIDATION_ERROR sin body', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2()
+    const res = await api
+      .patch(`/api/v2/evidences/${ev._id}/publish`)
+      .set('Authorization', bearer(token))
+      .send({})
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('GET /api/v2/subindicators/:id/assessments', () => {
+  test('200 lista assessments de un subindicador', async () => {
+    const { sub, characteristic } = await seedGraphV2()
+    await seed.createCharacteristicAssessmentV2({
+      subindicator: sub,
+      characteristic
+    })
+    const res = await api
+      .get(`/api/v2/subindicators/${sub._id}/assessments`)
+      .expect(200)
+    expect(Array.isArray(res.body.data)).toBe(true)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  test('200 lista vacia si no hay assessments', async () => {
+    const { sub } = await seedGraphV2()
+    const res = await api
+      .get(`/api/v2/subindicators/${sub._id}/assessments`)
+      .expect(200)
+    expect(res.body.data).toHaveLength(0)
+  })
+
+  test('GET por characteristicId: 200', async () => {
+    const { sub, characteristic } = await seedGraphV2()
+    await seed.createCharacteristicAssessmentV2({
+      subindicator: sub,
+      characteristic
+    })
+    const res = await api
+      .get(`/api/v2/subindicators/${sub._id}/assessments/${characteristic._id}`)
+      .expect(200)
+    expect(res.body.data.subindicatorId).toBe(sub._id.toString())
+    expect(res.body.data.characteristicId).toBeDefined()
+  })
+
+  test('GET por characteristicId: 404 si no existe', async () => {
+    const { sub } = await seedGraphV2()
+    const res = await api
+      .get(`/api/v2/subindicators/${sub._id}/assessments/646172dcdc1f126cd5207c05`)
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
   })

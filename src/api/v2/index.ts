@@ -27,6 +27,8 @@ import evidenceRouter from './resources/evidence.routes'
 import indicatorInstanceRouter from './resources/indicatorInstance.routes'
 import configRouter from './resources/config.routes'
 import auditLogRouter from './resources/audit-log.routes'
+import sourceDocumentsRouter from './resources/source-documents.routes'
+import assessmentsRouter from './resources/assessments.routes'
 import { errorHandler } from './error-handler'
 
 const router = Router()
@@ -54,6 +56,12 @@ router.use('/evidences', evidenceRouter)
 router.use('/indicator-instances', indicatorInstanceRouter)
 router.use('/config', configRouter)
 router.use('/audit-log', auditLogRouter)
+router.use('/source-documents', sourceDocumentsRouter)
+// Assessments de caracteristica: GET /subindicators/:subindicatorId/assessments
+// y GET /subindicators/:subindicatorId/assessments/:characteristicId.
+// Se monta bajo /subindicators para formar URLs REST semanticas sin tocar
+// el recurso /subindicators existente (que sigue siendo legacy en Tema 5).
+router.use('/subindicators/:subindicatorId/assessments', assessmentsRouter)
 
 // Error handler de v2 AL FINAL: captura solo errores de este sub-router.
 router.use(errorHandler)

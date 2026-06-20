@@ -60,7 +60,7 @@ const evidenceSchema = new Schema<IEvidenceV2>({
   },
   link: {
     type: String,
-    required: true
+    required: false
   },
   note: {
     type: String,

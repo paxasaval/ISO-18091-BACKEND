@@ -18,6 +18,11 @@ interface ICharacteristicAssessmentV2 extends Document {
   verified: boolean
   qualifiedBy?: mongoose.Types.ObjectId
   qualifiedAt?: Date
+  // sourceOverrides: lista de SourceDocumentV2._id cuya propagacion de
+  // verificacion NO se aplica a las evidencias de esta caracteristica.
+  // Modelado minimo para el punto 4 del objetivo (Tema 5).
+  // TODO: exponer endpoint para gestionar estos overrides (Tema 4/post-Tema5).
+  sourceOverrides: mongoose.Types.ObjectId[]
 }
 
 const criterionSchema = new Schema<ICriterion>({
@@ -71,7 +76,13 @@ const assessmentSchema = new Schema<ICharacteristicAssessmentV2>({
   qualifiedAt: {
     type: Date,
     required: false
-  }
+  },
+  sourceOverrides: [{
+    type: Schema.Types.ObjectId,
+    ref: 'SourceDocumentV2',
+    required: false,
+    default: []
+  }]
 })
 
 assessmentSchema.set('toJSON', {

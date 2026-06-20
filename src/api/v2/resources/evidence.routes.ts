@@ -1,91 +1,101 @@
-// Recurso REST /api/v2/evidences sobre evidenceRepository, con auth v2.
+// Recurso REST /api/v2/evidences re-apuntado a la capa v2 (EvidenceV2 /
+// v2_evidences). Reemplaza el routeador legacy que usaba evidenceRepository v1.
 //
 // Endpoints:
-//   GET    /                 -> lista (?subindicator=<id> filtra; paginacion)
-//   GET    /:id              -> 200 (populate profundo) | 404 NOT_FOUND
-//   POST   /                 -> authenticate + requireElevatedRole (rol != USER);
-//                              crea + notify(1,..,3,..) +
-//                              recalcSubindicatorFromEvidence({includeNewEvidence:
-//                              true}). 201.
-//   PUT    /:id/qualify      -> authenticate + requireAdminRole (rol ADMIN);
-//                              crea/actualiza rubricas, califica + notify(2,..,3,..)
-//                              + recalc({includeNewEvidence:false}). 200 | 404.
-//   PUT    /:id              -> 200 (reemplazo de campos editables) | 404
-//   DELETE /:id              -> authenticate + requireAdminRole; elimina y
-//                              re-califica subindicador (autoQualify) e indicador
-//                              (autoQualification) persistiendo, como el legacy.
-//                              204 | 404.
+//   GET    /                  -> lista (?subindicator=&characteristic=, paginacion)
+//   GET    /:id               -> 200 (populate autor) | 404
+//   POST   /                  -> authenticate + requirePermission('evidence:upload')
+//                               author SIEMPRE desde req.token.id (no del body)
+//                               Acepta kind ('principal'|'complementaria'),
+//                               sourceId? y pages?. Valida con zod. 201.
+//                               Audit evidence.create.
+//                               NO recalcula score (TODO Tema 4).
+//   PUT    /:id               -> authenticate + requirePermission('evidence:upload')
+//                               edita metadatos. 200 | 404.
+//   DELETE /:id               -> authenticate + requirePermission('evidence:qualify')
+//                               204 | 404. Audit evidence.delete.
+//                               NO recalcula score (TODO Tema 4).
+//   PUT    /:id/qualify       -> authenticate + requirePermission('evidence:qualify')
+//                               Crea/actualiza CharacteristicAssessmentV2 para
+//                               {subindicatorId, characteristicId}.
+//                               Segregacion: 403 si req.token.id === evidence.author.
+//                               qualifiedBy = req.token.id.
+//                               Audit evidence.qualify.
+//                               NO calcula 0-3 del subindicador (TODO Tema 4).
+//   PATCH  /:id/publish       -> authenticate + requirePermission('evidence:publish')
+//                               set verified. Audit evidence.publish.
 //
-// Toda la logica de negocio (recalc/notify/autoQualify) se delega a los servicios
-// existentes, pasandoles el req real (recalc/notify usan req.get('tenant')).
+// TODO Tema 4: scoring.service consumira los CharacteristicAssessmentV2 para
+// recalcular qualification 0-3 del subindicador e indicadorInstance.
 
 import mongoose from 'mongoose'
 import { Router } from 'express'
 import { z } from 'zod'
-import evidenceRepository from '../../../repositories/evidence.repository'
-import subIndicatorRepository from '../../../repositories/subindicator.repository'
-import indicatorInstanceRepository from '../../../repositories/indicatorInstance.repository'
-import notificationService from '../../../services/notification.service'
-import subindicatorService from '../../../services/subindicator.service'
-import qualificationService from '../../../services/qualification.service'
-import { NotificationType, NotificationItemType } from '../../../constants'
-import { NotFoundError, UnauthorizedError } from '../../../utils/errors'
-import Rubric from '../../../../models/rubric'
-import Commit from '../../../../models/commit'
+import { evidenceRepository } from '../../../v2/repositories/evidence.repository'
+import { characteristicAssessmentRepository } from '../../../v2/repositories/characteristic-assessment.repository'
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../../utils/errors'
+import { authenticate, requirePermission } from '../auth'
 import { asyncHandler } from '../async-handler'
-import { authenticate, requireElevatedRole } from '../auth'
-import { requireAdminRole } from '../require-admin'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
+import auditService from '../../../v2/services/audit.service'
 
 const router = Router()
 
 // --- Schemas ---
 
 const idParamSchema = z.object({
-  id: z.string()
+  id: objectId
 })
 
 const listQuerySchema = paginationQuerySchema.extend({
-  subindicator: objectId.optional()
+  subindicator: objectId.optional(),
+  characteristic: objectId.optional()
 })
 
 const createBodySchema = z.object({
-  characteristicID: objectId,
-  subIndicatorID: objectId,
+  characteristicId: objectId,
+  subindicatorId: objectId,
   name: z.string().min(1),
+  // link puede omitirse si sourceId esta presente
   link: z.string().optional(),
   note: z.string().optional(),
-  content: z.array(z.unknown()).optional(),
-  verified: z.boolean().optional(),
-  qualification: z.number().optional(),
+  kind: z.enum(['principal', 'complementaria']).optional(),
+  sourceId: objectId.optional(),
+  pages: z.string().optional(),
   extras: z.unknown().optional()
-})
-
-const qualifyBodySchema = z.object({
-  qualification: z.number(),
-  user: objectId.optional(),
-  verified: z.boolean().optional(),
-  commit: z.string().optional(),
-  rubric: z
-    .array(
-      z.object({
-        valuation: objectId,
-        qualification: z.number()
-      })
-    )
-    .optional()
+}).superRefine((val, ctx) => {
+  if (!val.link && !val.sourceId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'link is required when sourceId is not provided',
+      path: ['link']
+    })
+  }
 })
 
 const updateBodySchema = z.object({
-  name: z.string().min(1),
-  characteristicID: objectId,
-  subIndicatorID: objectId,
+  name: z.string().min(1).optional(),
   link: z.string().optional(),
-  verified: z.boolean().optional(),
-  note: z.string().optional()
+  note: z.string().optional(),
+  kind: z.enum(['principal', 'complementaria']).optional(),
+  pages: z.string().optional()
+})
+
+const qualifyBodySchema = z.object({
+  criteria: z.array(
+    z.object({
+      valuationId: objectId,
+      met: z.boolean(),
+      weight: z.number()
+    })
+  ).min(0)
+})
+
+const publishBodySchema = z.object({
+  verified: z.boolean()
 })
 
 // --- Rutas ---
@@ -95,20 +105,27 @@ router.get(
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
-    const filter = query.subindicator
-      ? { subIndicatorID: query.subindicator }
-      : {}
+    const filter: Record<string, unknown> = {}
+    if (query.subindicator) {
+      filter.subindicatorId = new mongoose.Types.ObjectId(query.subindicator)
+    }
+    if (query.characteristic) {
+      filter.characteristicId = new mongoose.Types.ObjectId(query.characteristic)
+    }
     const pg = resolvePagination(query)
 
     if (!pg.enabled) {
-      const items = await evidenceRepository.findAll(filter)
+      const items = await evidenceRepository.findAll(filter, {
+        populate: { path: 'author', select: 'name email' }
+      })
       return ok(res, items)
     }
 
     const { items, total } = await evidenceRepository.findPage(
       filter,
       pg.page,
-      pg.size
+      pg.size,
+      { populate: { path: 'author', select: 'name email' } }
     )
     return ok(res, items, {
       pagination: buildPaginationMeta(pg.page, pg.size, total)
@@ -120,7 +137,12 @@ router.get(
   '/:id',
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
-    const item = await evidenceRepository.findByIdDeep(req.params.id)
+    const item = await evidenceRepository.findById(req.params.id, {
+      populate: [
+        { path: 'author', select: 'name email' },
+        { path: 'sourceId' }
+      ]
+    })
     if (!item) {
       throw new NotFoundError('evidence not found')
     }
@@ -131,7 +153,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  requireElevatedRole,
+  requirePermission('evidence:upload'),
   validate({ body: createBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createBodySchema>
@@ -139,154 +161,73 @@ router.post(
     if (!userId) {
       throw new UnauthorizedError('token missing or invalid')
     }
-    const saved = await evidenceRepository.create({
-      characteristicID: new mongoose.Types.ObjectId(body.characteristicID),
-      subIndicatorID: new mongoose.Types.ObjectId(body.subIndicatorID),
+
+    const data: Record<string, unknown> = {
+      characteristicId: new mongoose.Types.ObjectId(body.characteristicId),
+      subindicatorId: new mongoose.Types.ObjectId(body.subindicatorId),
       name: body.name,
-      link: body.link,
       note: body.note,
-      content: body.content ?? [],
-      state: true,
-      verified: body.verified ?? false,
-      qualification: body.qualification ?? 1,
+      kind: body.kind ?? 'principal',
+      verified: false,
+      // author SIEMPRE desde el token — no del body
       author: new mongoose.Types.ObjectId(userId),
       commits: [],
-      ...(body.extras ? { extras: body.extras } : {})
-    } as unknown as Parameters<typeof evidenceRepository.create>[0])
+      extras: body.extras ?? {}
+    }
+    if (body.link) data.link = body.link
+    if (body.sourceId) {
+      data.sourceId = new mongoose.Types.ObjectId(body.sourceId)
+    }
+    if (body.pages) data.pages = body.pages
 
-    await notificationService.notify(
-      NotificationType.Added,
-      userId,
-      NotificationItemType.Evidence,
-      String(saved.id),
-      req
+    const saved = await evidenceRepository.create(
+      data as Parameters<typeof evidenceRepository.create>[0]
     )
-    // recalc usa req.get('tenant'); le pasamos el req real del handler.
-    await subindicatorService.recalcSubindicatorFromEvidence(
-      saved as unknown as { subIndicatorID: unknown; author: unknown },
-      req,
-      { includeNewEvidence: true }
-    )
+
+    await auditService.record({
+      actor: userId,
+      action: 'evidence.create',
+      entityType: 'evidence',
+      entityId: (saved as unknown as { _id: { toString(): string } })._id.toString()
+    })
+
+    // TODO Tema 4: scoring.service.recompute(subindicatorId) para recalcular
+    // qualification 0-3 del subindicador usando los CharacteristicAssessmentV2.
+
     return created(res, saved)
   })
 )
 
 router.put(
-  '/:id/qualify',
-  authenticate,
-  requireAdminRole,
-  validate({ params: idParamSchema, body: qualifyBodySchema }),
-  asyncHandler(async (req, res) => {
-    const body = req.body as z.infer<typeof qualifyBodySchema>
-    const userId = req.token?.id
-    if (!userId) {
-      throw new UnauthorizedError('token missing or invalid')
-    }
-    const id = req.params.id
-    const evidenceCurrent = (await evidenceRepository.findById(id)) as unknown as {
-      _id: unknown
-      rubric: unknown[]
-      qualification: unknown
-      qualificationBy: unknown
-      verified: unknown
-      qualificationDate: Date
-      commits: unknown[]
-    } | null
-    if (!evidenceCurrent) {
-      throw new NotFoundError('evidence not found')
-    }
-
-    let rubric: unknown
-    const incomingRubric = body.rubric ?? []
-    if (evidenceCurrent.rubric.length === 0) {
-      rubric = await Promise.all(
-        incomingRubric.map(async (r) => {
-          const newRubric = new Rubric({
-            valuation: new mongoose.Types.ObjectId(r.valuation),
-            qualification: r.qualification,
-            evidence: evidenceCurrent._id
-          })
-          const rSave = await newRubric.save()
-          return rSave._id
-        })
-      )
-    } else {
-      for (const i of incomingRubric) {
-        const rubricDB = (await Rubric.findOne({
-          valuation: i.valuation,
-          evidence: evidenceCurrent._id
-        })) as unknown as { _id: unknown } | null
-        if (rubricDB) {
-          await Rubric.findByIdAndUpdate(
-            rubricDB._id as string,
-            { qualification: i.qualification },
-            { new: true }
-          )
-        }
-      }
-      rubric = evidenceCurrent.rubric
-    }
-
-    evidenceCurrent.rubric = rubric as unknown[]
-    evidenceCurrent.qualification = body.qualification
-    evidenceCurrent.qualificationBy = body.user
-    evidenceCurrent.verified = body.verified ?? false
-    evidenceCurrent.qualificationDate = new Date()
-    if (body.commit) {
-      const commit = new Commit({
-        autor: userId,
-        body: body.commit,
-        created: new Date(),
-        lastUpdate: new Date()
-      })
-      const commitSave = await commit.save()
-      evidenceCurrent.commits = evidenceCurrent.commits.concat(commitSave._id)
-    }
-
-    const updated = (await evidenceRepository.updateById(
-      id,
-      evidenceCurrent as Record<string, unknown>,
-      { new: true }
-    )) as unknown as { id: unknown; subIndicatorID: unknown }
-
-    await notificationService.notify(
-      NotificationType.Modified,
-      userId,
-      NotificationItemType.Evidence,
-      String(updated.id),
-      req
-    )
-    await subindicatorService.recalcSubindicatorFromEvidence(
-      updated as unknown as { subIndicatorID: unknown; author: unknown },
-      req,
-      { includeNewEvidence: false }
-    )
-    await subIndicatorRepository.updateById(
-      String(updated.subIndicatorID),
-      { lastUpdate: new Date() },
-      { new: true }
-    )
-    return ok(res, updated)
-  })
-)
-
-router.put(
   '/:id',
+  authenticate,
+  requirePermission('evidence:upload'),
   validate({ params: idParamSchema, body: updateBodySchema }),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof updateBodySchema>
-    const updated = await evidenceRepository.updateById(req.params.id, {
-      name: body.name,
-      characteristicID: body.characteristicID,
-      subIndicatorID: body.subIndicatorID,
-      link: body.link,
-      verified: body.verified ?? false,
-      note: body.note,
-      commits: []
-    })
+    const update: Record<string, unknown> = {}
+    if (body.name !== undefined) update.name = body.name
+    if (body.link !== undefined) update.link = body.link
+    if (body.note !== undefined) update.note = body.note
+    if (body.kind !== undefined) update.kind = body.kind
+    if (body.pages !== undefined) update.pages = body.pages
+
+    if (Object.keys(update).length === 0) {
+      throw new ValidationError('no fields to update')
+    }
+
+    const updated = await evidenceRepository.updateById(req.params.id, update)
     if (!updated) {
       throw new NotFoundError('evidence not found')
     }
+
+    await auditService.record({
+      actor: req.token!.id,
+      action: 'evidence.update',
+      entityType: 'evidence',
+      entityId: req.params.id
+    })
+
     return ok(res, updated)
   })
 )
@@ -294,57 +235,170 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireAdminRole,
+  requirePermission('evidence:qualify'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const userId = req.token?.id
     if (!userId) {
       throw new UnauthorizedError('token missing or invalid')
     }
-    const deleted = (await evidenceRepository.deleteById(
-      req.params.id
-    )) as unknown as { subIndicatorID: unknown } | null
+
+    const deleted = await evidenceRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('evidence not found')
     }
 
-    // Re-califica el subindicador (autoQualify) y persiste, como el legacy.
-    const subindicatorBD = await subIndicatorRepository.findByIdForQualification(
-      String(deleted.subIndicatorID)
-    )
-    const subindicatorUpdated = qualificationService.autoQualifySubindicator(
-      subindicatorBD as never
-    ) as unknown as {
-      id: unknown
-      indicadorID: unknown
-      lastUpdate: Date
-      lastUpdateBy: unknown
-    }
-    subindicatorUpdated.lastUpdate = new Date()
-    subindicatorUpdated.lastUpdateBy = userId
-    await subIndicatorRepository.updateById(
-      String(subindicatorUpdated.id),
-      subindicatorUpdated as Record<string, unknown>,
-      { new: true }
-    )
+    await auditService.record({
+      actor: userId,
+      action: 'evidence.delete',
+      entityType: 'evidence',
+      entityId: req.params.id
+    })
 
-    // Re-califica el indicador (autoQualification) y persiste.
-    const indicatorBD = await indicatorInstanceRepository.findById(
-      String(subindicatorUpdated.indicadorID),
-      { populate: { path: 'subindicators' } }
-    )
-    const indicatorUpdated = qualificationService.autoQualificationIndicator(
-      indicatorBD as never
-    ) as unknown as { id: unknown; lastUpdate: Date; lastUpdateBy: unknown }
-    indicatorUpdated.lastUpdate = new Date()
-    indicatorUpdated.lastUpdateBy = userId
-    await indicatorInstanceRepository.updateById(
-      String(indicatorUpdated.id),
-      indicatorUpdated as Record<string, unknown>,
-      { new: true }
-    )
+    // TODO Tema 4: scoring.service.recompute(subindicatorId) tras eliminar.
 
     return noContent(res)
+  })
+)
+
+// PUT /:id/qualify — Rubrica POR CARACTERISTICA.
+//
+// Crea o actualiza un CharacteristicAssessmentV2 para el par
+// (subindicatorId, characteristicId) de la evidencia con los criterios
+// enviados. El campo qualifiedBy se toma del token (no del body).
+//
+// Segregacion de funciones: si req.token.id === evidence.author, devuelve 403.
+// Esto implementa la separacion entre quien sube y quien califica (Tema 3/5).
+//
+// NO calcula el 0-3 del subindicador (TODO Tema 4).
+router.put(
+  '/:id/qualify',
+  authenticate,
+  requirePermission('evidence:qualify'),
+  validate({ params: idParamSchema, body: qualifyBodySchema }),
+  asyncHandler(async (req, res) => {
+    const body = req.body as z.infer<typeof qualifyBodySchema>
+    const userId = req.token?.id
+    if (!userId) {
+      throw new UnauthorizedError('token missing or invalid')
+    }
+
+    const evidence = await evidenceRepository.findById(req.params.id)
+    if (!evidence) {
+      throw new NotFoundError('evidence not found')
+    }
+
+    const ev = evidence as unknown as {
+      author: mongoose.Types.ObjectId
+      subindicatorId: mongoose.Types.ObjectId
+      characteristicId: mongoose.Types.ObjectId
+    }
+
+    // Segregacion: quien sube no puede calificar.
+    if (ev.author.toString() === userId) {
+      throw new ForbiddenError(
+        'the evidence author cannot qualify their own evidence'
+      )
+    }
+
+    const criteria = body.criteria.map((c) => ({
+      valuationId: new mongoose.Types.ObjectId(c.valuationId),
+      met: c.met,
+      weight: c.weight
+    }))
+
+    // Calcular score como suma de weights de criterios cumplidos.
+    // totalRubric = suma de todos los weights.
+    // El mapeo a 0-3 queda diferido a Tema 4.
+    const score = criteria.reduce(
+      (acc, c) => acc + (c.met ? c.weight : 0),
+      0
+    )
+    const totalRubric = criteria.reduce((acc, c) => acc + c.weight, 0)
+
+    // Buscar assessment existente para el par (subindicatorId, characteristicId).
+    const existing = await characteristicAssessmentRepository.findOne({
+      subindicatorId: ev.subindicatorId,
+      characteristicId: ev.characteristicId
+    })
+
+    let assessment
+    if (existing) {
+      const existingDoc = existing as unknown as { _id: { toString(): string } }
+      assessment = await characteristicAssessmentRepository.updateById(
+        existingDoc._id.toString(),
+        {
+          criteria,
+          score,
+          totalRubric,
+          qualifiedBy: new mongoose.Types.ObjectId(userId),
+          qualifiedAt: new Date()
+        } as unknown as Parameters<typeof characteristicAssessmentRepository.updateById>[1]
+      )
+    } else {
+      assessment = await characteristicAssessmentRepository.create({
+        subindicatorId: ev.subindicatorId,
+        characteristicId: ev.characteristicId,
+        criteria,
+        score,
+        totalRubric,
+        verified: false,
+        qualifiedBy: new mongoose.Types.ObjectId(userId),
+        qualifiedAt: new Date(),
+        sourceOverrides: []
+      } as unknown as Parameters<typeof characteristicAssessmentRepository.create>[0])
+    }
+
+    await auditService.record({
+      actor: userId,
+      action: 'evidence.qualify',
+      entityType: 'evidence',
+      entityId: req.params.id,
+      meta: {
+        subindicatorId: ev.subindicatorId.toString(),
+        characteristicId: ev.characteristicId.toString(),
+        score,
+        totalRubric
+      }
+    })
+
+    // TODO Tema 4: scoring.service.recompute(ev.subindicatorId) para derivar
+    // qualification 0-3 del subindicador desde los CharacteristicAssessmentV2.
+
+    return ok(res, { evidence, assessment })
+  })
+)
+
+// PATCH /:id/publish — publica/despublica una evidencia (set verified).
+router.patch(
+  '/:id/publish',
+  authenticate,
+  requirePermission('evidence:publish'),
+  validate({ params: idParamSchema, body: publishBodySchema }),
+  asyncHandler(async (req, res) => {
+    const body = req.body as z.infer<typeof publishBodySchema>
+    const userId = req.token?.id
+    if (!userId) {
+      throw new UnauthorizedError('token missing or invalid')
+    }
+
+    const updated = await evidenceRepository.updateById(
+      req.params.id,
+      { verified: body.verified } as unknown as Parameters<typeof evidenceRepository.updateById>[1]
+    )
+    if (!updated) {
+      throw new NotFoundError('evidence not found')
+    }
+
+    await auditService.record({
+      actor: userId,
+      action: 'evidence.publish',
+      entityType: 'evidence',
+      entityId: req.params.id,
+      meta: { verified: body.verified }
+    })
+
+    return ok(res, updated)
   })
 )
 
