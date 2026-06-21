@@ -320,6 +320,31 @@ describe('DELETE /api/v2/subindicators/:id (subindicator:create)', () => {
     expect(await Subindicator.findById(sub._id)).toBeNull()
   })
 
+  // B5: al borrar un subindicador, se desenlaza del IndicatorInstance padre.
+  test('B5: al eliminar, se hace $pull del IndicatorInstance padre', async () => {
+    const { token } = await elevatedAuth()
+    const inst = await seed.createIndicatorInstanceV2()
+    const sub = await seed.createSubindicatorV2({ indicatorInstance: inst })
+
+    // Enlazar manualmente el sub a la instancia.
+    await IndicatorInstance.findByIdAndUpdate(inst._id, {
+      subindicators: [sub._id]
+    })
+
+    // Verificar que esta enlazado.
+    const instBefore = await IndicatorInstance.findById(inst._id)
+    expect(instBefore.subindicators.map((s) => s.toString())).toContain(sub._id.toString())
+
+    await api
+      .delete(`/api/v2/subindicators/${sub._id}`)
+      .set('Authorization', bearer(token))
+      .expect(204)
+
+    // Verificar que fue desenlazado.
+    const instAfter = await IndicatorInstance.findById(inst._id)
+    expect(instAfter.subindicators.map((s) => s.toString())).not.toContain(sub._id.toString())
+  })
+
   test('401 sin token', async () => {
     const sub = await seed.createSubindicatorV2()
     const res = await api

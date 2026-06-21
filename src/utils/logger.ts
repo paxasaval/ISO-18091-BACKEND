@@ -8,8 +8,12 @@ export const info = (...params: unknown[]): void => {
   }
 }
 
+export const warn = (...params: unknown[]): void => {
+  console.warn(...params)
+}
+
 export const error = (...params: unknown[]): void => {
   console.error(...params)
 }
 
-export default { info, error }
+export default { info, warn, error }

@@ -49,8 +49,9 @@ const summaryQuerySchema = z.object({
   period: z.string().min(1)
 })
 
+// B4: qualification es calculado por el scoring; el cliente no puede editarlo
+// via este endpoint. Solo subindicators se acepta para enlace manual.
 const updateBodySchema = z.object({
-  qualification: z.number(),
   subindicators: z.array(objectId)
 })
 
@@ -167,8 +168,8 @@ router.put(
     if (!userId) {
       throw new UnauthorizedError('token missing or invalid')
     }
+    // B4: qualification no se persiste desde el body; lo fija el scoring.
     const updated = await indicatorInstanceRepository.updateById(req.params.id, {
-      qualification: body.qualification,
       lastUpdate: new Date(),
       lastUpdateBy: new mongoose.Types.ObjectId(userId),
       subindicators: body.subindicators.map(

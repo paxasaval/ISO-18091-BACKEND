@@ -4,6 +4,7 @@ const db = require('../helpers/db')
 const seed = require('../helpers/seed-v2')
 const SourceDocument = require('../../src/v2/models/source-document.model')
 const Evidence = require('../../src/v2/models/evidence.model')
+const CharacteristicAssessment = require('../../src/v2/models/characteristic-assessment.model')
 
 const api = supertest(app)
 
@@ -227,6 +228,47 @@ describe('DELETE /api/v2/source-documents/:id', () => {
       .set('Authorization', bearer(token))
       .expect(204)
     expect(await SourceDocument.findById(doc._id)).toBeNull()
+  })
+
+  // B6: al borrar un source-document, las evidencias verificadas que lo referencian
+  // quedan con verified=false y los assessments se sincronizan.
+  test('B6: al eliminar, las evidencias verificadas se ponen en verified=false', async () => {
+    const { token } = await uploaderAuth()
+    const gad = await seed.createGadV2()
+    const doc = await seed.createSourceDocumentV2({ gad })
+    const sub = await seed.createSubindicatorV2()
+    const ch = await seed.createCharacteristicV2()
+
+    // Crear evidencia verificada que referencia al documento.
+    const ev = await seed.createEvidenceV2({
+      sourceId: doc._id,
+      subindicator: sub,
+      characteristic: ch,
+      verified: true
+    })
+
+    // Crear assessment verificado para ese par.
+    await seed.createCharacteristicAssessmentV2({
+      subindicator: sub,
+      characteristic: ch,
+      verified: true
+    })
+
+    await api
+      .delete(`/api/v2/source-documents/${doc._id}`)
+      .set('Authorization', bearer(token))
+      .expect(204)
+
+    // La evidencia debe quedar con verified=false.
+    const updatedEv = await Evidence.findById(ev._id)
+    expect(updatedEv.verified).toBe(false)
+
+    // El assessment debe haberse sincronizado a verified=false.
+    const updatedAssessment = await CharacteristicAssessment.findOne({
+      subindicatorId: sub._id,
+      characteristicId: ch._id
+    })
+    expect(updatedAssessment.verified).toBe(false)
   })
 
   test('404 NOT_FOUND', async () => {

@@ -55,6 +55,7 @@ import mongoose from 'mongoose'
 import { characteristicAssessmentRepository } from '../repositories/characteristic-assessment.repository'
 import { subindicatorRepository } from '../repositories/subindicator.repository'
 import { indicatorInstanceRepository } from '../repositories/indicator-instance.repository'
+import { evidenceRepository } from '../repositories/evidence.repository'
 import TypeModel from '../models/type.model'
 import logger from '../../utils/logger'
 import auditService from './audit.service'
@@ -93,7 +94,7 @@ const parseThreshold = (v: unknown): number => {
 }
 
 // Mapea un percent (0..1) a 0–3 segun umbrales.
-// red y yellow son fracciones; si no son validos, se usan defaults.
+// red y yellow son fracciones; si no son validos o estan invertidos, se usan defaults.
 const percentToQualification = (
   percent: number,
   redRaw: unknown,
@@ -102,16 +103,79 @@ const percentToQualification = (
   const DEFAULT_RED = 0.5
   const DEFAULT_YELLOW = 0.75
 
-  const red = Number.isFinite(parseThreshold(redRaw))
+  let red = Number.isFinite(parseThreshold(redRaw))
     ? parseThreshold(redRaw)
-    : DEFAULT_RED
-  const yellow = Number.isFinite(parseThreshold(yellowRaw))
+    : NaN
+  let yellow = Number.isFinite(parseThreshold(yellowRaw))
     ? parseThreshold(yellowRaw)
-    : DEFAULT_YELLOW
+    : NaN
+
+  // B3: si los umbrales son invalidos o estan invertidos, usar defaults y advertir.
+  if (!Number.isFinite(red) || !Number.isFinite(yellow) || red >= yellow) {
+    logger.warn(
+      'scoring.percentToQualification: umbrales invalidos o invertidos ' +
+      `(red=${red}, yellow=${yellow}). Usando defaults red=${DEFAULT_RED}, yellow=${DEFAULT_YELLOW}.`
+    )
+    red = DEFAULT_RED
+    yellow = DEFAULT_YELLOW
+  }
 
   if (percent < red) return 1
   if (percent < yellow) return 2
   return 3
+}
+
+// ---------------------------------------------------------------------------
+// syncAssessmentVerified (B1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sincroniza el campo `verified` de un CharacteristicAssessmentV2 para el par
+ * (subindicadorId, caracteristicaId) a partir de las evidencias verificadas.
+ *
+ * Regla: un assessment esta verified===true si y solo si EXISTE al menos una
+ * EvidenceV2 con verified===true para ese par (subindicatorId, characteristicId).
+ *
+ * Si no existe assessment para el par, no hace nada (no hay rubrica aun).
+ * Devuelve true si el assessment fue actualizado, false si no existia o no cambio.
+ */
+export const syncAssessmentVerified = async (
+  subindicatorId: string,
+  characteristicId: string
+): Promise<boolean> => {
+  const assessment = await characteristicAssessmentRepository.findOne({
+    subindicatorId: new mongoose.Types.ObjectId(subindicatorId),
+    characteristicId: new mongoose.Types.ObjectId(characteristicId)
+  })
+
+  if (!assessment) {
+    // No hay rubrica aun -> nada que sincronizar.
+    return false
+  }
+
+  const assessmentDoc = assessment as unknown as { _id: mongoose.Types.ObjectId; verified: boolean }
+
+  // Contar evidencias verificadas para este par.
+  const verifiedCount = await evidenceRepository.count({
+    subindicatorId: new mongoose.Types.ObjectId(subindicatorId),
+    characteristicId: new mongoose.Types.ObjectId(characteristicId),
+    verified: true
+  } as unknown as Parameters<typeof evidenceRepository.count>[0])
+
+  const shouldBeVerified = verifiedCount > 0
+
+  if (assessmentDoc.verified !== shouldBeVerified) {
+    await characteristicAssessmentRepository.updateById(
+      assessmentDoc._id.toString(),
+      { verified: shouldBeVerified } as unknown as Parameters<typeof characteristicAssessmentRepository.updateById>[1]
+    )
+    logger.info(
+      `scoring.syncAssessmentVerified: sub=${subindicatorId} ch=${characteristicId} ` +
+      `verified=${shouldBeVerified} (evidenciasVerificadas=${verifiedCount})`
+    )
+  }
+
+  return true
 }
 
 // ---------------------------------------------------------------------------
@@ -370,6 +434,7 @@ export const recomputeAfterSourceDocumentVerify = async (
 // ---------------------------------------------------------------------------
 
 const scoringService = {
+  syncAssessmentVerified,
   recomputeSubindicator,
   recomputeIndicatorInstance,
   recomputeAfterEvidenceChange,

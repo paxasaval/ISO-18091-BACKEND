@@ -35,6 +35,7 @@ import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
 import { objectId } from '../schemas'
 import { validate } from '../validate'
+import scoringService from '../../../v2/services/scoring.service'
 
 const router = Router()
 
@@ -65,12 +66,12 @@ const createBodySchema = z.object({
   evidences: z.array(objectId).optional()
 })
 
+// B4: qualification es calculado por el scoring; el cliente no puede editarlo.
 const updateBodySchema = z.object({
   name: z.string().min(1).optional(),
   responsibleText: z.string().optional(),
   responsibleUserIds: z.array(objectId).optional(),
   typeId: objectId.optional(),
-  qualification: z.number().optional(),
   commits: z.array(objectId).optional(),
   evidences: z.array(objectId).optional()
 }).refine(
@@ -428,7 +429,7 @@ router.put(
     if (body.typeId !== undefined) {
       update.typeId = new mongoose.Types.ObjectId(body.typeId)
     }
-    if (body.qualification !== undefined) update.qualification = body.qualification
+    // B4: qualification no se persiste desde el body; lo fija el scoring.
     if (body.commits !== undefined) update.commits = toObjectIds(body.commits)
     if (body.evidences !== undefined) update.evidences = toObjectIds(body.evidences)
 
@@ -446,10 +447,30 @@ router.delete(
   requirePermission('subindicator:create'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
+    const userId = req.token?.id
+    if (!userId) {
+      throw new UnauthorizedError('token missing or invalid')
+    }
+
     const deleted = await subindicatorRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('subindicator not found')
     }
+
+    // B5: desenlazar el subindicador del IndicatorInstance padre y recomputar.
+    const deletedDoc = deleted as unknown as {
+      indicatorInstanceId?: { toString(): string }
+    }
+    const parentInstanceId = deletedDoc.indicatorInstanceId?.toString()
+
+    if (parentInstanceId) {
+      await indicatorInstanceRepository.updateById(parentInstanceId, {
+        $pull: { subindicators: new mongoose.Types.ObjectId(req.params.id) }
+      } as unknown as Parameters<typeof indicatorInstanceRepository.updateById>[1])
+
+      await scoringService.recomputeIndicatorInstance(parentInstanceId)
+    }
+
     return noContent(res)
   })
 )

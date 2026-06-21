@@ -484,6 +484,33 @@ describe('PUT /api/v2/evidences/:id/qualify (evidence:qualify, segregacion)', ()
       .expect(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
+
+  // M5: valuationId que no pertenece a la caracteristica -> 400
+  test('400 VALIDATION_ERROR si valuationId no pertenece a la caracteristica (M5)', async () => {
+    const { token: qualifierToken } = await adminAuth()
+    const { user: authorUser } = await responsibleAuth()
+    const { sub, characteristic } = await seedGraphV2()
+
+    const ev = await seed.createEvidenceV2({
+      subindicator: sub,
+      characteristic,
+      author: authorUser._id
+    })
+
+    // Crear una valuacion que NO pertenece a la caracteristica de la evidencia
+    const foreignValuation = await seed.createValuationV2({ maxValue: 5 })
+
+    const res = await api
+      .put(`/api/v2/evidences/${ev._id}/qualify`)
+      .set('Authorization', bearer(qualifierToken))
+      .send({
+        criteria: [
+          { valuationId: foreignValuation._id.toString(), met: true }
+        ]
+      })
+      .expect(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
 })
 
 describe('PATCH /api/v2/evidences/:id/publish (evidence:publish)', () => {

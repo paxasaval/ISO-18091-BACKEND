@@ -1,1 +1,4 @@
 build
+dist
+query_loja.js
+backup_*.js

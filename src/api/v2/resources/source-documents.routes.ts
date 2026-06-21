@@ -192,17 +192,55 @@ router.delete(
   requirePermission('evidence:upload'),
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
+    const userId = req.token!.id
+
+    // B6: antes de borrar, desverificar evidencias que referencian este documento
+    // y sincronizar los assessments afectados.
+    const docIdObj = new mongoose.Types.ObjectId(req.params.id)
+    const linkedEvidences = await evidenceRepository.findAll({ sourceId: docIdObj })
+
+    const affectedSubindicatorIds: string[] = []
+
+    for (const evidence of linkedEvidences) {
+      const ev = evidence as unknown as {
+        _id: mongoose.Types.ObjectId
+        subindicatorId: mongoose.Types.ObjectId
+        characteristicId: mongoose.Types.ObjectId
+        verified: boolean
+      }
+
+      // Solo procesar evidencias actualmente verificadas (o todas, para garantizar
+      // consistencia; el costo de una escritura de no-op es bajo).
+      await evidenceRepository.updateById(
+        ev._id.toString(),
+        { verified: false } as unknown as Parameters<typeof evidenceRepository.updateById>[1]
+      )
+
+      // B1: sincronizar el assessment del par afectado.
+      await scoringService.syncAssessmentVerified(
+        ev.subindicatorId.toString(),
+        ev.characteristicId.toString()
+      )
+
+      affectedSubindicatorIds.push(ev.subindicatorId.toString())
+    }
+
     const deleted = await sourceDocumentRepository.deleteById(req.params.id)
     if (!deleted) {
       throw new NotFoundError('source document not found')
     }
 
     await auditService.record({
-      actor: req.token!.id,
+      actor: userId,
       action: 'sourcedocument.delete',
       entityType: 'source_document',
       entityId: req.params.id
     })
+
+    // Recomputar semaforos afectados.
+    if (affectedSubindicatorIds.length > 0) {
+      await scoringService.recomputeAfterSourceDocumentVerify(affectedSubindicatorIds, userId)
+    }
 
     return noContent(res)
   })
@@ -302,6 +340,12 @@ router.patch(
           verified
         }
       })
+
+      // B1: sincronizar verified del assessment tras propagar la verificacion.
+      await scoringService.syncAssessmentVerified(
+        ev.subindicatorId.toString(),
+        ev.characteristicId.toString()
+      )
 
       affectedSubindicatorIds.push(ev.subindicatorId.toString())
     }

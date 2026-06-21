@@ -42,6 +42,8 @@ import { objectId } from '../schemas'
 import { validate } from '../validate'
 import auditService from '../../../v2/services/audit.service'
 import scoringService from '../../../v2/services/scoring.service'
+import CharacteristicV2 from '../../../v2/models/characteristic.model'
+import ValuationV2 from '../../../v2/models/valuation.model'
 
 const router = Router()
 
@@ -85,12 +87,13 @@ const updateBodySchema = z.object({
   pages: z.string().optional()
 })
 
+// B2: weight se ignora del body; se carga de ValuationV2.maxValue en el handler.
 const qualifyBodySchema = z.object({
   criteria: z.array(
     z.object({
       valuationId: objectId,
       met: z.boolean(),
-      weight: z.number()
+      weight: z.number().optional()  // se acepta pero se descarta; el peso viene de ValuationV2
     })
   ).min(0)
 })
@@ -246,7 +249,12 @@ router.delete(
       throw new NotFoundError('evidence not found')
     }
 
-    const deletedSub = (deleted as unknown as { subindicatorId?: { toString(): string } }).subindicatorId
+    const deletedDoc = deleted as unknown as {
+      subindicatorId?: { toString(): string }
+      characteristicId?: { toString(): string }
+    }
+    const deletedSub = deletedDoc.subindicatorId
+    const deletedCh = deletedDoc.characteristicId
 
     await auditService.record({
       actor: userId,
@@ -255,6 +263,13 @@ router.delete(
       entityId: req.params.id
     })
 
+    if (deletedSub && deletedCh) {
+      // B1: sincronizar verified del assessment antes del recompute.
+      await scoringService.syncAssessmentVerified(
+        deletedSub.toString(),
+        deletedCh.toString()
+      )
+    }
     if (deletedSub) {
       await scoringService.recomputeAfterEvidenceChange(deletedSub.toString(), userId)
     }
@@ -303,15 +318,41 @@ router.put(
       )
     }
 
+    // M5: validar que cada valuationId pertenece a las valuaciones de la caracteristica.
+    const characteristic = await CharacteristicV2.findById(ev.characteristicId).exec()
+    if (!characteristic) {
+      throw new NotFoundError('characteristic not found')
+    }
+    const chDoc = characteristic as unknown as { valuations: mongoose.Types.ObjectId[] }
+    const allowedValuationIds = new Set(
+      (chDoc.valuations ?? []).map((vid) => vid.toString())
+    )
+    for (const c of body.criteria) {
+      if (!allowedValuationIds.has(c.valuationId)) {
+        throw new ValidationError(
+          `valuationId ${c.valuationId} does not belong to characteristic ${ev.characteristicId.toString()}`
+        )
+      }
+    }
+
+    // B2: cargar el peso real desde ValuationV2.maxValue; ignorar weight del body.
+    const valuationDocs = await ValuationV2.find({
+      _id: { $in: body.criteria.map((c) => new mongoose.Types.ObjectId(c.valuationId)) }
+    }).exec()
+    const weightByValuationId = new Map(
+      (valuationDocs as unknown as Array<{ _id: mongoose.Types.ObjectId; maxValue: number }>)
+        .map((v) => [v._id.toString(), v.maxValue])
+    )
+
     const criteria = body.criteria.map((c) => ({
       valuationId: new mongoose.Types.ObjectId(c.valuationId),
       met: c.met,
-      weight: c.weight
+      // B2: peso desde la base de datos, no del cliente.
+      weight: weightByValuationId.get(c.valuationId) ?? 0
     }))
 
     // Calcular score como suma de weights de criterios cumplidos.
-    // totalRubric = suma de todos los weights.
-    // El mapeo a 0-3 queda diferido a Tema 4.
+    // totalRubric = suma de todos los weights (desde ValuationV2.maxValue).
     const score = criteria.reduce(
       (acc, c) => acc + (c.met ? c.weight : 0),
       0
@@ -364,6 +405,13 @@ router.put(
       }
     })
 
+    // B1: sincronizar verified del assessment antes del recompute.
+    // qualify no cambia el verified de la evidencia; la sincronizacion asegura
+    // que el assessment refleja el estado actual de las evidencias verificadas.
+    await scoringService.syncAssessmentVerified(
+      ev.subindicatorId.toString(),
+      ev.characteristicId.toString()
+    )
     await scoringService.recomputeAfterEvidenceChange(ev.subindicatorId.toString(), userId)
 
     return ok(res, { evidence, assessment })
@@ -399,7 +447,20 @@ router.patch(
       meta: { verified: body.verified }
     })
 
-    const updatedSub = (updated as unknown as { subindicatorId?: { toString(): string } }).subindicatorId
+    const updatedDoc = updated as unknown as {
+      subindicatorId?: { toString(): string }
+      characteristicId?: { toString(): string }
+    }
+    const updatedSub = updatedDoc.subindicatorId
+    const updatedCh = updatedDoc.characteristicId
+
+    if (updatedSub && updatedCh) {
+      // B1: sincronizar verified del assessment tras cambiar verified de la evidencia.
+      await scoringService.syncAssessmentVerified(
+        updatedSub.toString(),
+        updatedCh.toString()
+      )
+    }
     if (updatedSub) {
       await scoringService.recomputeAfterEvidenceChange(updatedSub.toString(), userId)
     }

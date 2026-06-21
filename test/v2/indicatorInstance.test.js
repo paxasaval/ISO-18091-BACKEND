@@ -170,15 +170,31 @@ describe('PUT /api/v2/indicator-instances/:id (indicator:create)', () => {
     expect(res.body.error.code).toBe('FORBIDDEN')
   })
 
-  test('200 actualiza (Administrador)', async () => {
+  // B4: qualification es calculado por el scoring; el cliente no puede editarlo.
+  // Enviar qualification en el body NO debe cambiar el valor (se ignora).
+  test('200 actualiza subindicators (qualification ignorado — B4)', async () => {
     const { token } = await elevatedAuth()
     const instance = await seed.createIndicatorInstanceV2()
     const res = await api
       .put(`/api/v2/indicator-instances/${instance._id}`)
       .set('Authorization', bearer(token))
+      // qualification: 3 se envia pero debe ser ignorado por el endpoint
       .send({ qualification: 3, subindicators: [] })
       .expect(200)
-    expect(res.body.data.qualification).toBe(3)
+    // El endpoint no debe cambiar qualification; queda en el valor calculado (0 sin subs).
+    expect(res.body.data.qualification).toBe(0)
+  })
+
+  test('200 enlaza subindicadores (Administrador)', async () => {
+    const { token } = await elevatedAuth()
+    const instance = await seed.createIndicatorInstanceV2()
+    const sub = await seed.createSubindicatorV2({ indicatorInstance: instance })
+    const res = await api
+      .put(`/api/v2/indicator-instances/${instance._id}`)
+      .set('Authorization', bearer(token))
+      .send({ subindicators: [sub._id.toString()] })
+      .expect(200)
+    expect(res.body.data.id).toBeDefined()
   })
 
   test('404 NOT_FOUND', async () => {

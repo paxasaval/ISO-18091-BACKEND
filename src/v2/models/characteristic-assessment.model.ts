@@ -85,6 +85,11 @@ const assessmentSchema = new Schema<ICharacteristicAssessmentV2>({
   }]
 })
 
+// Indice unico compuesto: solo puede existir UN assessment por par
+// (subindicador, caracteristica). El qualify usa findOne+update para respetar
+// este constraint; si se intenta crear un duplicado, MongoDB lanza un error.
+assessmentSchema.index({ subindicatorId: 1, characteristicId: 1 }, { unique: true })
+
 assessmentSchema.set('toJSON', {
   transform: (doc, returnObj) => {
     if (returnObj._id) {

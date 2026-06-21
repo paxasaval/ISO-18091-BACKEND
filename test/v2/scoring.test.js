@@ -15,6 +15,7 @@ const db = require('../helpers/db')
 const seed = require('../helpers/seed-v2')
 const scoringService = require('../../src/v2/services/scoring.service')
 const CharacteristicAssessment = require('../../src/v2/models/characteristic-assessment.model')
+const Evidence = require('../../src/v2/models/evidence.model')
 const Subindicator = require('../../src/v2/models/subindicator.model')
 const IndicatorInstance = require('../../src/v2/models/indicator-instance.model')
 
@@ -483,5 +484,158 @@ describe('recomputeAfterEvidenceChange — flujo integrado', () => {
 
     expect(updatedSub.qualification).toBe(0)
     expect(updatedInst.qualification).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// B1 — FLUJO COMPLETO: crear evidencia -> qualify -> publish => sale del gris
+// ---------------------------------------------------------------------------
+//
+// Verifica que syncAssessmentVerified funciona correctamente:
+//   1. Crear evidencia (verified=false)
+//   2. Calificar con criteria cumplidos -> assessment created (verified=false por defecto)
+//   3. syncAssessmentVerified: sin evidencias verificadas -> assessment.verified=false -> sub=0
+//   4. Publicar evidencia (verified=true) -> syncAssessmentVerified: hay evidencia verificada
+//      -> assessment.verified=true -> recompute -> sub deja de ser 0 (pasa a 3)
+
+describe('B1 — flujo completo: crear evidencia → qualify → publish ⇒ subindicador sale del gris', () => {
+  test('subindicador pasa de 0 a 3 tras el flujo completo', async () => {
+    // 1. Preparar el grafo v2 con umbrales.
+    const val = await seed.createValuationV2({ maxValue: 1 })
+    const ch = await seed.createCharacteristicV2({ valuations: [val._id], tier: 1 })
+    const type = await seed.createTypeV2({
+      characteristics: [ch._id],
+      red: '0.50',
+      yellow: '0.75'
+    })
+    const inst = await seed.createIndicatorInstanceV2()
+    const sub = await seed.createSubindicatorV2({ type, indicatorInstance: inst })
+
+    await IndicatorInstance.findByIdAndUpdate(inst._id, {
+      subindicators: [sub._id]
+    })
+
+    // 2. Crear evidencia (verified=false).
+    const ev = await new Evidence({
+      subindicatorId: sub._id,
+      characteristicId: ch._id,
+      name: 'Evidencia Test B1',
+      link: 'http://test/b1.pdf',
+      kind: 'principal',
+      verified: false,
+      author: sub.createdBy,
+      commits: [],
+      extras: {}
+    }).save()
+
+    // 3. Simular qualify: crear assessment con criteria cumplidos (verified=false).
+    await new CharacteristicAssessment({
+      subindicatorId: sub._id,
+      characteristicId: ch._id,
+      criteria: [{ valuationId: val._id, met: true, weight: 1 }],
+      score: 1,
+      totalRubric: 1,
+      verified: false,  // <-- no verificado aun
+      sourceOverrides: [],
+      qualifiedAt: new Date(),
+      qualifiedBy: sub.createdBy
+    }).save()
+
+    // syncAssessmentVerified: sin evidencias verificadas -> assessment.verified=false.
+    await scoringService.syncAssessmentVerified(sub._id.toString(), ch._id.toString())
+    await scoringService.recomputeAfterEvidenceChange(sub._id.toString())
+
+    const subAfterQualify = await Subindicator.findById(sub._id)
+    expect(subAfterQualify.qualification).toBe(0)  // assessment no verificado -> gris
+
+    // 4. Publicar la evidencia (verified=true).
+    await Evidence.findByIdAndUpdate(ev._id, { verified: true })
+
+    // syncAssessmentVerified: ahora hay una evidencia verificada -> assessment.verified=true.
+    await scoringService.syncAssessmentVerified(sub._id.toString(), ch._id.toString())
+
+    // Verificar que el assessment fue marcado como verified.
+    const assessment = await CharacteristicAssessment.findOne({
+      subindicatorId: sub._id,
+      characteristicId: ch._id
+    })
+    expect(assessment.verified).toBe(true)
+
+    // Recompute: assessment verificado con 100% -> verde (3).
+    await scoringService.recomputeAfterEvidenceChange(sub._id.toString())
+
+    const subAfterPublish = await Subindicator.findById(sub._id)
+    const instAfterPublish = await IndicatorInstance.findById(inst._id)
+
+    // El subindicador sale del gris.
+    expect(subAfterPublish.qualification).toBe(3)
+    expect(instAfterPublish.qualification).toBe(3)
+  })
+
+  test('despublicar evidencia vuelve a poner el subindicador en gris', async () => {
+    const val = await seed.createValuationV2({ maxValue: 1 })
+    const ch = await seed.createCharacteristicV2({ valuations: [val._id], tier: 1 })
+    const type = await seed.createTypeV2({
+      characteristics: [ch._id],
+      red: '0.50',
+      yellow: '0.75'
+    })
+    const inst = await seed.createIndicatorInstanceV2()
+    const sub = await seed.createSubindicatorV2({ type, indicatorInstance: inst })
+
+    await IndicatorInstance.findByIdAndUpdate(inst._id, {
+      subindicators: [sub._id]
+    })
+
+    // Evidencia verificada + assessment verificado -> sub en verde.
+    const ev = await new Evidence({
+      subindicatorId: sub._id,
+      characteristicId: ch._id,
+      name: 'Ev B1 despublish',
+      link: 'http://test/b1b.pdf',
+      kind: 'principal',
+      verified: true,
+      author: sub.createdBy,
+      commits: [],
+      extras: {}
+    }).save()
+
+    await new CharacteristicAssessment({
+      subindicatorId: sub._id,
+      characteristicId: ch._id,
+      criteria: [{ valuationId: val._id, met: true, weight: 1 }],
+      score: 1,
+      totalRubric: 1,
+      verified: true,
+      sourceOverrides: [],
+      qualifiedAt: new Date(),
+      qualifiedBy: sub.createdBy
+    }).save()
+
+    await scoringService.recomputeAfterEvidenceChange(sub._id.toString())
+    const subBefore = await Subindicator.findById(sub._id)
+    expect(subBefore.qualification).toBe(3)  // verde
+
+    // Despublicar la evidencia.
+    await Evidence.findByIdAndUpdate(ev._id, { verified: false })
+
+    // syncAssessmentVerified: no hay evidencias verificadas -> assessment.verified=false.
+    await scoringService.syncAssessmentVerified(sub._id.toString(), ch._id.toString())
+    await scoringService.recomputeAfterEvidenceChange(sub._id.toString())
+
+    const subAfter = await Subindicator.findById(sub._id)
+    // Sin assessments verificados -> vuelve al gris (0).
+    expect(subAfter.qualification).toBe(0)
+  })
+
+  test('syncAssessmentVerified no falla si no existe assessment para el par', async () => {
+    const sub = await seed.createSubindicatorV2()
+    const ch = await seed.createCharacteristicV2()
+    // No hay assessment -> debe retornar false sin lanzar error.
+    const result = await scoringService.syncAssessmentVerified(
+      sub._id.toString(),
+      ch._id.toString()
+    )
+    expect(result).toBe(false)
   })
 })
