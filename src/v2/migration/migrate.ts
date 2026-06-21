@@ -1164,16 +1164,19 @@ export const runDiffReport = async (): Promise<ReadableDiffRow[]> => {
     })
   }
 
-  const out = path.resolve(
-    __dirname,
-    '../../../docs/refactor-reports/diff-puntajes-legible.md'
-  )
-  try {
-    fs.mkdirSync(path.dirname(out), { recursive: true })
-    fs.writeFileSync(out, buildReadableDiff(rows), 'utf8')
-    process.stdout.write(`[migrate:v2] Diff legible escrito en: ${out}\n`)
-  } catch (err) {
-    logger.error('No se pudo escribir el diff legible:', err)
+  // No escribir archivo en tests (evita pisar el informe real de docs/).
+  if (process.env.NODE_ENV !== 'test') {
+    const out = path.resolve(
+      __dirname,
+      '../../../docs/refactor-reports/diff-puntajes-legible.md'
+    )
+    try {
+      fs.mkdirSync(path.dirname(out), { recursive: true })
+      fs.writeFileSync(out, buildReadableDiff(rows), 'utf8')
+      process.stdout.write(`[migrate:v2] Diff legible escrito en: ${out}\n`)
+    } catch (err) {
+      logger.error('No se pudo escribir el diff legible:', err)
+    }
   }
 
   process.stdout.write(`[migrate:v2] Diff legible: ${rows.length} cambios.\n`)
@@ -1250,19 +1253,21 @@ export const runMigration = async (
 
   process.stdout.write('[migrate:v2] Migracion completada.\n')
 
-  // Escribir informe
-  const reportContent = buildReport(report, write)
-  const reportPath = path.resolve(
-    __dirname,
-    '../../../docs/refactor-reports/migracion-v2-informe.md'
-  )
+  // Escribir informe (no en tests, para no pisar el informe real de docs/).
+  if (process.env.NODE_ENV !== 'test') {
+    const reportContent = buildReport(report, write)
+    const reportPath = path.resolve(
+      __dirname,
+      '../../../docs/refactor-reports/migracion-v2-informe.md'
+    )
 
-  try {
-    fs.mkdirSync(path.dirname(reportPath), { recursive: true })
-    fs.writeFileSync(reportPath, reportContent, 'utf8')
-    process.stdout.write(`[migrate:v2] Informe escrito en: ${reportPath}\n`)
-  } catch (err) {
-    logger.error('No se pudo escribir el informe:', err)
+    try {
+      fs.mkdirSync(path.dirname(reportPath), { recursive: true })
+      fs.writeFileSync(reportPath, reportContent, 'utf8')
+      process.stdout.write(`[migrate:v2] Informe escrito en: ${reportPath}\n`)
+    } catch (err) {
+      logger.error('No se pudo escribir el informe:', err)
+    }
   }
 
   return report

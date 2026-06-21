@@ -9,3 +9,7 @@ Backup
 backup_2026-06-13.json
 backup_export.js
 backup_restore.js
+
+# Informes generados por la migración (salida por-ejecución; se regeneran).
+docs/refactor-reports/migracion-v2-informe.md
+docs/refactor-reports/diff-puntajes-legible.md
