@@ -1,5 +1,148 @@
 
 ---
+# API v2 — Guia rapida (ISO 18091)
+
+> La documentacion interactiva completa esta disponible en **`/api/v2/docs`** (Swagger UI).
+> El spec OpenAPI 3 en crudo se puede descargar de **`/api/v2/openapi.json`**.
+
+## Estado de las versiones
+
+| Version | Base path | Estado |
+|---------|-----------|--------|
+| v2 | `/api/v2/` | **Activa** — arquitectura TS por capas, envelope consistente |
+| v1 | `/api/` | **Legacy congelado** — no se documentan nuevas rutas aqui |
+
+---
+
+## Autenticacion (Bearer JWT)
+
+1. Obtener el token con `POST /api/login` (endpoint v1, no cambia):
+   ```
+   POST /api/login
+   Content-Type: application/json
+   { "email": "user@example.com", "password": "secret" }
+   ```
+2. Incluir el token en todas las llamadas protegidas:
+   ```
+   Authorization: Bearer <token>
+   ```
+   Ademas algunas rutas requieren el header `tenant` (GAD id) para filtrar por espacio de trabajo:
+   ```
+   tenant: <gadId>
+   ```
+
+---
+
+## Envelope de respuesta
+
+### Exito (200 / 201)
+```json
+{
+  "data": <recurso o array>,
+  "meta": {
+    "pagination": { "page": 1, "size": 20, "total": 100, "totalPages": 5 }
+  }
+}
+```
+`meta` es opcional; solo aparece cuando hay paginacion u otros metadatos.
+
+### Error (4xx / 5xx)
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "evidence not found",
+    "details": null
+  }
+}
+```
+
+### Codigos de error canonicos
+
+| Codigo | HTTP | Descripcion |
+|--------|------|-------------|
+| `VALIDATION_ERROR` | 400 | Body, params o query invalidos (zod) |
+| `INVALID_ID` | 400 | ObjectId mal formado |
+| `UNAUTHORIZED` | 401 | Token ausente, invalido o expirado |
+| `FORBIDDEN` | 403 | Rol sin el permiso requerido |
+| `NOT_FOUND` | 404 | Recurso no encontrado |
+| `INTERNAL` | 500 | Error interno del servidor |
+
+---
+
+## Paginacion
+
+Todos los listados soportan paginacion opcional con `?page=<n>&size=<n>`.
+Sin esos parametros se devuelve la lista completa.
+Cuando se pagina, la respuesta incluye `meta.pagination`:
+
+```
+GET /api/v2/types?page=1&size=10
+GET /api/v2/evidences?subindicator=<id>&page=2&size=20
+```
+
+---
+
+## Tabla de permisos por endpoint
+
+| Recurso / endpoint | Metodo | Permiso requerido |
+|--------------------|--------|-------------------|
+| `/types`, `/ods`, `/rol`, `/valuation`, `/rubric`, `/commit`, `/news`, `/sponsors`, `/notifications`, `/indicators`, `/characteristics`, `/subindicators`, `/evidences`, `/source-documents`, `/gad`, `/indicator-instances`, `/config/semaphore` | GET | Publico (sin auth) |
+| `/me`, `/users`, `/users/:id`, `/periods`, `/periods/:id` | GET | `authenticate` (cualquier token valido) |
+| `/types`, `/ods`, `/rol`, `/valuation`, `/commit`, `/news`, `/sponsors`, `/notifications`, `/indicators`, `/rubric` | POST / PUT / DELETE | Sin permiso especifico (autenticacion opcional segun recurso — ver spec) |
+| `/types/:id`, `/characteristics`, `/characteristics/:id` (POST/PUT/DELETE/PATCH) | POST/PUT/DELETE/PATCH | `catalog:manage` |
+| `/characteristics/:id/valuation` | PATCH | `rubric:configure` |
+| `/gad`, `/gad/:id`, `/gad/:id/reports`, `/gad/:id/config` | POST/PUT/DELETE | `gad:config` |
+| `/users`, `/users/:id` (POST/PUT/DELETE) | POST/PUT/DELETE | `user:manage` |
+| `/audit-log` | GET | `user:manage` |
+| `/periods` (POST), `/periods/:id` (DELETE) | POST/DELETE | Rol elevado (no ROL_USER) |
+| `/subindicators` (POST/PUT/DELETE) | POST/PUT/DELETE | `subindicator:create` |
+| `/evidences` (POST/PUT) | POST/PUT | `evidence:upload` |
+| `/evidences/:id` (DELETE), `/evidences/:id/qualify` | DELETE/PUT | `evidence:qualify` |
+| `/evidences/:id/publish`, `/source-documents/:id/verify` | PATCH | `evidence:publish` |
+| `/source-documents` (POST/PUT/DELETE) | POST/PUT/DELETE | `evidence:upload` |
+| `/indicator-instances/:id` (PUT/DELETE) | PUT/DELETE | `indicator:create` |
+
+### Permisos por rol por defecto
+
+| Rol | Permisos |
+|-----|----------|
+| Administrador | Todos los permisos |
+| Responsable | `subindicator:create`, `evidence:upload`, `public:read` |
+| Metodólogo | `rubric:configure`, `catalog:manage`, `public:read` |
+| Ciudadano | `public:read` |
+
+---
+
+## Recursos v2 — resumen de rutas
+
+| Recurso | Rutas |
+|---------|-------|
+| Tipos de subindicador | `GET/POST /api/v2/types`, `GET/PUT/DELETE /api/v2/types/:id` |
+| ODS | `GET/POST /api/v2/ods`, `GET/PUT/DELETE /api/v2/ods/:id` |
+| Roles | `GET/POST /api/v2/rol`, `GET/PUT/DELETE /api/v2/rol/:id` |
+| Perfil propio | `GET /api/v2/me` |
+| Usuarios | `GET/POST /api/v2/users`, `GET/PUT/DELETE /api/v2/users/:id` |
+| Commits | `GET/POST /api/v2/commit`, `GET/PUT/DELETE /api/v2/commit/:id` |
+| Valuaciones | `GET/POST /api/v2/valuation`, `GET/PUT/DELETE /api/v2/valuation/:id` |
+| Notificaciones | `GET/POST /api/v2/notifications`, `GET/PUT/DELETE /api/v2/notifications/:id` |
+| Noticias | `GET/POST /api/v2/news`, `GET/PUT/DELETE /api/v2/news/:id` |
+| Rubric | `GET/POST /api/v2/rubric`, `GET/PUT/DELETE /api/v2/rubric/:id` |
+| Sponsors | `GET/POST /api/v2/sponsors`, `GET/PUT/DELETE /api/v2/sponsors/:id` |
+| GADs | `GET/POST /api/v2/gad`, `GET/PUT/DELETE /api/v2/gad/:id`, `GET/POST /api/v2/gad/:id/reports`, `PUT /api/v2/gad/:id/config` |
+| Periodos | `GET/POST /api/v2/periods`, `GET/DELETE /api/v2/periods/:id` |
+| Caracteristicas | `GET/POST /api/v2/characteristics`, `GET/PUT/DELETE /api/v2/characteristics/:id`, `PATCH /api/v2/characteristics/:id/{valuation,inputKind,format,extras}` |
+| Subindicadores | `GET/POST /api/v2/subindicators`, `GET/PUT/DELETE /api/v2/subindicators/:id` |
+| Assessments (anidados) | `GET /api/v2/subindicators/:subindicatorId/assessments`, `GET /api/v2/subindicators/:subindicatorId/assessments/:characteristicId` |
+| Evidencias | `GET/POST /api/v2/evidences`, `GET/PUT/DELETE /api/v2/evidences/:id`, `PUT /api/v2/evidences/:id/qualify`, `PATCH /api/v2/evidences/:id/publish` |
+| Instancias de indicador | `GET /api/v2/indicator-instances`, `GET /api/v2/indicator-instances/summary`, `GET/PUT/DELETE /api/v2/indicator-instances/:id` |
+| Indicadores (catalogo) | `GET/POST /api/v2/indicators`, `GET/PUT/DELETE /api/v2/indicators/:id` |
+| Config (semaforo) | `GET /api/v2/config/semaphore` |
+| Audit log | `GET /api/v2/audit-log` |
+| Documentos fuente POA | `GET/POST /api/v2/source-documents`, `GET/PUT/DELETE /api/v2/source-documents/:id`, `PATCH /api/v2/source-documents/:id/verify` |
+| Documentacion | `GET /api/v2/openapi.json`, `GET /api/v2/docs` |
+
+---
 # Documentación de la API - ISO 18091 Backend
 
 Bienvenido a la documentación de la API para el Backend de ISO 18091, una API basada en Node.js para la herramienta tecnológica basada en ISO 18091. Esta documentación proporciona una descripción general de los endpoints disponibles, parámetros de solicitud, formatos de respuesta y ejemplos de uso.

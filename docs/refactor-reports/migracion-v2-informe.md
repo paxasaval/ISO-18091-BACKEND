@@ -1,7 +1,7 @@
 # Informe de migración v1 → v2
 
 **Modo:** DRY-RUN
-**Fecha:** 2026-06-21T01:18:27.768Z
+**Fecha:** 2026-06-21T02:03:18.899Z
 
 ## Conteos por colección
 
@@ -29,9 +29,9 @@ _Sin diffs de scoring (dry-run o no hay cambios)._
 
 Se fusionaron 1 pares (subindicador, característica) desde rúbricas por evidencia a CharacteristicAssessment v2.
 
-### Par 6a373be30d1cee28f3d4244b / 6a373be30d1cee28f3d42441
-- Evidencias: 6a373be30d1cee28f3d4244e, 6a373be30d1cee28f3d42450
-- Criterios (UNION): [{"valuationId":"6a373be30d1cee28f3d42433","met":true,"weight":2},{"valuationId":"6a373be30d1cee28f3d42435","met":true,"weight":3}]
+### Par 6a3746660256900c03f9303c / 6a3746660256900c03f93032
+- Evidencias: 6a3746660256900c03f9303f, 6a3746660256900c03f93041
+- Criterios (UNION): [{"valuationId":"6a3746660256900c03f93024","met":true,"weight":2},{"valuationId":"6a3746660256900c03f93026","met":true,"weight":3}]
 - Verified: true
 
 

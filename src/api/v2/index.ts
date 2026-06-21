@@ -5,8 +5,14 @@
 // errorHandler legacy de app.js (que sigue manejando v1).
 //
 // Se exporta con `export =` para que app.js (CommonJS) lo consuma con require().
+//
+// Documentacion (publica, sin auth):
+//   GET /api/v2/openapi.json  -> spec OpenAPI 3 (JSON)
+//   GET /api/v2/docs          -> Swagger UI navegable
 
 import { Router } from 'express'
+import swaggerUi from 'swagger-ui-express'
+import spec from './openapi'
 import indicatorsRouter from './resources/indicators.routes'
 import usersRouter from './resources/users.routes'
 import odsRouter from './resources/ods.routes'
@@ -32,6 +38,18 @@ import assessmentsRouter from './resources/assessments.routes'
 import { errorHandler } from './error-handler'
 
 const router = Router()
+
+// --- Documentacion publica (sin auth) ---
+// GET /api/v2/openapi.json -> spec OpenAPI 3 en JSON crudo.
+router.get('/openapi.json', (_req, res) => {
+  res.json(spec)
+})
+
+// GET /api/v2/docs -> Swagger UI.
+// swaggerUi.serve es un array de middlewares; swaggerUi.setup devuelve el handler.
+router.use('/docs', swaggerUi.serve, swaggerUi.setup(spec, {
+  customSiteTitle: 'ISO 18091 API v2 — Docs'
+}))
 
 router.use('/indicators', indicatorsRouter)
 router.use('/users', usersRouter)
