@@ -1006,6 +1006,181 @@ const buildReport = (report: MigrationReport, write: boolean): string => {
 }
 
 // ---------------------------------------------------------------------------
+// Modo READ-ONLY: diff de puntajes LEGIBLE (para validación del GAD)
+//
+// Re-deriva el diff de forma idempotente sin reescribir nada: compara la
+// `qualification` de v1 (colecciones legacy, intactas = valor "antes") contra
+// las `v2_*` (ya recalculadas = "después") y resuelve nombres (subindicador,
+// indicador con cuadrante/número, año y GAD). Escribe
+// docs/refactor-reports/diff-puntajes-legible.md agrupado por GAD → cuadrante.
+// ---------------------------------------------------------------------------
+
+interface ReadableDiffRow {
+  gad: string
+  quadrant: string
+  indicator: string
+  entity: 'subindicador' | 'indicador'
+  name: string
+  year: string
+  before: number
+  after: number
+  change: string
+}
+
+const leanAll = async <T>(
+  model: mongoose.Model<T>
+): Promise<Record<string, unknown>[]> =>
+  model.find({}).lean() as unknown as Promise<Record<string, unknown>[]>
+
+const buildReadableDiff = (rows: ReadableDiffRow[]): string => {
+  const lines: string[] = []
+  lines.push('# Diff de puntajes (legible) v1 → v2', '')
+  lines.push(`**Fecha:** ${new Date().toISOString()}`, '')
+  lines.push(`Total de cambios de color: **${rows.length}**`, '')
+
+  const byChange = new Map<string, number>()
+  for (const r of rows) byChange.set(r.change, (byChange.get(r.change) ?? 0) + 1)
+  lines.push('## Resumen por cambio', '', '| Cambio | Cantidad |', '|---|---|')
+  for (const [change, n] of [...byChange.entries()].sort((a, b) => b[1] - a[1])) {
+    lines.push(`| ${change} | ${n} |`)
+  }
+  lines.push('')
+
+  const byGad = new Map<string, ReadableDiffRow[]>()
+  for (const r of rows) {
+    const arr = byGad.get(r.gad) ?? []
+    arr.push(r)
+    byGad.set(r.gad, arr)
+  }
+  lines.push('## Detalle por GAD y cuadrante', '')
+  for (const [gad, gadRows] of [...byGad.entries()].sort()) {
+    lines.push(`### GAD: ${gad}`, '')
+    const byQ = new Map<string, ReadableDiffRow[]>()
+    for (const r of gadRows) {
+      const arr = byQ.get(r.quadrant) ?? []
+      arr.push(r)
+      byQ.set(r.quadrant, arr)
+    }
+    for (const [q, qRows] of [...byQ.entries()].sort()) {
+      lines.push(
+        `#### ${q}`,
+        '',
+        '| Tipo | Indicador | Subindicador | Año | Antes | Después | Cambio |',
+        '|---|---|---|---|---|---|---|'
+      )
+      const sorted = qRows.sort((a, b) => a.indicator.localeCompare(b.indicator))
+      for (const r of sorted) {
+        const subName = r.entity === 'subindicador' ? r.name : '—'
+        lines.push(
+          `| ${r.entity} | ${r.indicator} | ${subName} | ${r.year} | ` +
+            `${qualColor(r.before)} | ${qualColor(r.after)} | ${r.change} |`
+        )
+      }
+      lines.push('')
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Genera el diff de puntajes legible (READ-ONLY). No escribe en v2_*.
+ * Devuelve las filas y escribe el informe legible en docs/refactor-reports/.
+ */
+export const runDiffReport = async (): Promise<ReadableDiffRow[]> => {
+  process.stdout.write('[migrate:v2] Generando diff legible (read-only)...\n')
+
+  // v1 = valor "antes" (colecciones legacy intactas)
+  const oldSub = new Map<string, number>()
+  for (const s of await leanAll(SubindicatorV1)) {
+    oldSub.set(String(s._id), Number(s.qualification ?? 0))
+  }
+  const oldInst = new Map<string, number>()
+  for (const i of await leanAll(IndicatorInstanceV1)) {
+    oldInst.set(String(i._id), Number(i.qualification ?? 0))
+  }
+
+  // v2 = valor "después" + nombres
+  const v2Subs = await leanAll(SubindicatorV2)
+  const v2Insts = await leanAll(IndicatorInstanceV2)
+  const instById = new Map<string, Record<string, unknown>>()
+  for (const i of v2Insts) instById.set(String(i._id), i)
+  const indById = new Map<string, Record<string, unknown>>()
+  for (const i of await leanAll(IndicatorV2)) indById.set(String(i._id), i)
+  const gadById = new Map<string, Record<string, unknown>>()
+  for (const g of await leanAll(GadV2)) gadById.set(String(g._id), g)
+
+  const ctxOf = (inst?: Record<string, unknown>) => {
+    const gad = inst ? gadById.get(String(inst.gadId)) : undefined
+    const ind = inst ? indById.get(String(inst.indicatorInstanceId)) : undefined
+    return {
+      gad: gad ? String(gad.name ?? gad._id) : '(sin GAD)',
+      quadrant: ind
+        ? `Q${ind.quadrant ?? '?'}${ind.quadrantName ? ' ' + ind.quadrantName : ''}`
+        : '(sin cuadrante)',
+      indicator: ind
+        ? `${ind.quadrant ?? '?'}.${ind.number ?? '?'} ${ind.name ?? ''}`.trim()
+        : '(sin indicador)',
+      year: inst ? String(inst.year ?? '') : ''
+    }
+  }
+
+  const rows: ReadableDiffRow[] = []
+
+  for (const s of v2Subs) {
+    const id = String(s._id)
+    const before = oldSub.get(id) ?? 0
+    const after = Number(s.qualification ?? 0)
+    if (before === after) continue
+    const ctx = ctxOf(instById.get(String(s.indicatorInstanceId)))
+    rows.push({
+      gad: ctx.gad,
+      quadrant: ctx.quadrant,
+      indicator: ctx.indicator,
+      entity: 'subindicador',
+      name: String(s.name ?? id),
+      year: ctx.year,
+      before,
+      after,
+      change: `${qualColor(before)} → ${qualColor(after)}`
+    })
+  }
+
+  for (const i of v2Insts) {
+    const id = String(i._id)
+    const before = oldInst.get(id) ?? 0
+    const after = Number(i.qualification ?? 0)
+    if (before === after) continue
+    const ctx = ctxOf(i)
+    rows.push({
+      gad: ctx.gad,
+      quadrant: ctx.quadrant,
+      indicator: ctx.indicator,
+      entity: 'indicador',
+      name: ctx.indicator,
+      year: ctx.year,
+      before,
+      after,
+      change: `${qualColor(before)} → ${qualColor(after)}`
+    })
+  }
+
+  const out = path.resolve(
+    __dirname,
+    '../../../docs/refactor-reports/diff-puntajes-legible.md'
+  )
+  try {
+    fs.mkdirSync(path.dirname(out), { recursive: true })
+    fs.writeFileSync(out, buildReadableDiff(rows), 'utf8')
+    process.stdout.write(`[migrate:v2] Diff legible escrito en: ${out}\n`)
+  } catch (err) {
+    logger.error('No se pudo escribir el diff legible:', err)
+  }
+
+  process.stdout.write(`[migrate:v2] Diff legible: ${rows.length} cambios.\n`)
+  return rows
+}
+
+// ---------------------------------------------------------------------------
 // Función principal exportada (para tests y CLI)
 // ---------------------------------------------------------------------------
 
@@ -1109,10 +1284,15 @@ const isMainModule = (): boolean => {
 
 if (isMainModule()) {
   const args = process.argv.slice(2)
+  const doDiffOnly = args.includes('--diff-only')
   const doWrite = args.includes('--write')
   const isDryRun = args.includes('--dry-run') || !doWrite
 
-  if (isDryRun && !doWrite) {
+  if (doDiffOnly) {
+    process.stdout.write(
+      '[migrate:v2] Modo --diff-only: solo lectura, genera el diff legible.\n'
+    )
+  } else if (isDryRun && !doWrite) {
     process.stdout.write(
       '[migrate:v2] Sin --write: ejecutando en DRY-RUN (sin escritura en BD).\n'
     )
@@ -1130,7 +1310,13 @@ if (isMainModule()) {
 
   mongoose
     .connect(MONGODB_URI as string)
-    .then(() => runMigration({ write: doWrite }))
+    .then(async () => {
+      if (doDiffOnly) {
+        await runDiffReport()
+      } else {
+        await runMigration({ write: doWrite })
+      }
+    })
     .then(() => mongoose.disconnect())
     .then(() => process.exit(0))
     .catch((err: unknown) => {
