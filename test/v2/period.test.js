@@ -38,23 +38,12 @@ const baseUserAuth = async () => {
 
 const bearer = (token) => `Bearer ${token}`
 
-describe('GET /api/v2/periods (auth)', () => {
-  test('401 sin token', async () => {
-    const gad = await seed.createGadV2()
-    const res = await api
-      .get('/api/v2/periods')
-      .set('tenant', gad._id.toString())
-      .expect(401)
-    expect(res.body.error.code).toBe('UNAUTHORIZED')
-  })
-
-  test('200 lista por tenant', async () => {
-    const { token } = await elevatedAuth()
+describe('GET /api/v2/periods (PÚBLICO, sin token)', () => {
+  test('200 lista por tenant SIN token (portal ciudadano)', async () => {
     const gad = await seed.createGadV2()
     await seed.createPeriodV2({ gad })
     const res = await api
       .get('/api/v2/periods')
-      .set('Authorization', bearer(token))
       .set('tenant', gad._id.toString())
       .expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
@@ -62,31 +51,23 @@ describe('GET /api/v2/periods (auth)', () => {
   })
 
   test('400 sin tenant', async () => {
-    const { token } = await elevatedAuth()
-    const res = await api
-      .get('/api/v2/periods')
-      .set('Authorization', bearer(token))
-      .expect(400)
+    const res = await api.get('/api/v2/periods').expect(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
   })
 })
 
-describe('GET /api/v2/periods/:id (auth)', () => {
-  test('200', async () => {
-    const { token } = await elevatedAuth()
+describe('GET /api/v2/periods/:id (PÚBLICO, sin token)', () => {
+  test('200 sin token', async () => {
     const period = await seed.createPeriodV2()
     const res = await api
       .get(`/api/v2/periods/${period._id}`)
-      .set('Authorization', bearer(token))
       .expect(200)
     expect(res.body.data.id).toBe(period._id.toString())
   })
 
   test('404 NOT_FOUND', async () => {
-    const { token } = await elevatedAuth()
     const res = await api
       .get('/api/v2/periods/646172dcdc1f126cd5207c05')
-      .set('Authorization', bearer(token))
       .expect(404)
     expect(res.body.error.code).toBe('NOT_FOUND')
   })

@@ -1,9 +1,9 @@
 // Recurso REST /api/v2/periods sobre periodRepository, con auth de v2.
 //
 // Endpoints:
-//   GET    /          -> authenticate; lista por tenant (header 'tenant' o
-//                        ?tenant=)
-//   GET    /:id       -> authenticate; 200 | 404 NOT_FOUND
+//   GET    /          -> PÚBLICO (sin token); lista por tenant (header 'tenant'
+//                        o ?tenant=). Lo consume el portal ciudadano.
+//   GET    /:id       -> PÚBLICO (sin token); 200 | 404 NOT_FOUND
 //   POST   /          -> authenticate + requireElevatedRole; crea el periodo y,
 //                        si ?clone=true, clona instancias de indicadores +
 //                        subindicadores (periodRepository
@@ -63,7 +63,6 @@ const resolveTenant = (req: Request, queryTenant?: string): string => {
 
 router.get(
   '/',
-  authenticate,
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
@@ -91,7 +90,6 @@ router.get(
 
 router.get(
   '/:id',
-  authenticate,
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const period = await periodRepository.findById(req.params.id)
