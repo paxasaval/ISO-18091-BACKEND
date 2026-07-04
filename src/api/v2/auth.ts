@@ -47,6 +47,42 @@ export const authenticate: RequestHandler = (
   return next()
 }
 
+// Auth OPCIONAL: si viene un token válido lo adjunta a req.token; si no viene
+// (o es inválido/expirado) NO lanza — continúa como acceso público. Úsalo en
+// GET públicos que además quieren distinguir a un usuario autenticado (p.ej.
+// evidencias: el público ve solo verificadas, el admin puede ver todas).
+export const optionalAuthenticate: RequestHandler = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
+  const token = getTokenFrom(req)
+  if (!token) return next()
+  try {
+    const decoded = jwt.verify(token, env.SECRET)
+    if (typeof decoded !== 'string') {
+      req.token = decoded as TokenPayload
+    }
+  } catch {
+    // Token inválido/expirado: se ignora y se sigue como acceso público.
+  }
+  return next()
+}
+
+// Verifica (sin lanzar) si el token tiene un permiso concreto. Devuelve false
+// si no hay token, el rol no existe, o el rol no incluye el permiso. Útil para
+// decisiones condicionales dentro de un handler (no como guard).
+export const tokenHasPermission = async (
+  token: TokenPayload | undefined,
+  perm: string
+): Promise<boolean> => {
+  if (!token) return false
+  const rol = await Rol.findById(token.rol)
+  if (!rol) return false
+  const rolPerms: string[] = rol.permissions ?? []
+  return rolPerms.includes(perm)
+}
+
 // Guard de rol elevado: rechaza con 403 FORBIDDEN si el rol del token es el rol
 // base (ROL_USER) o si no existe. Debe usarse DESPUES de authenticate.
 // NOTA: se mantiene para retrocompatibilidad con los recursos complejos

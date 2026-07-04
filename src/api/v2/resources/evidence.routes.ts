@@ -2,8 +2,13 @@
 // v2_evidences). Reemplaza el routeador legacy que usaba evidenceRepository v1.
 //
 // Endpoints:
-//   GET    /                  -> lista (?subindicator=&characteristic=, paginacion)
-//   GET    /:id               -> 200 (populate autor) | 404
+//   GET    /                  -> PÚBLICO. Solo verificadas por defecto
+//                               (?subindicator=&characteristic=, paginacion).
+//                               Un usuario con permiso evidence:upload puede
+//                               pedir todas con ?includeUnverified=true.
+//   GET    /:id               -> PÚBLICO si verified; 404 al público si NO
+//                               verificada (no se revela). Admin con
+//                               evidence:upload SÍ la ve. 200 | 404.
 //   POST   /                  -> authenticate + requirePermission('evidence:upload')
 //                               author SIEMPRE desde req.token.id (no del body)
 //                               Acepta kind ('principal'|'complementaria'),
@@ -34,7 +39,12 @@ import { z } from 'zod'
 import { evidenceRepository } from '../../../v2/repositories/evidence.repository'
 import { characteristicAssessmentRepository } from '../../../v2/repositories/characteristic-assessment.repository'
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../../utils/errors'
-import { authenticate, requirePermission } from '../auth'
+import {
+  authenticate,
+  optionalAuthenticate,
+  requirePermission,
+  tokenHasPermission
+} from '../auth'
 import { asyncHandler } from '../async-handler'
 import { buildPaginationMeta, created, noContent, ok } from '../envelope'
 import { paginationQuerySchema, resolvePagination } from '../pagination'
@@ -55,7 +65,13 @@ const idParamSchema = z.object({
 
 const listQuerySchema = paginationQuerySchema.extend({
   subindicator: objectId.optional(),
-  characteristic: objectId.optional()
+  characteristic: objectId.optional(),
+  // Solo surte efecto para un usuario autenticado con permiso evidence:upload;
+  // el público siempre recibe únicamente las verificadas.
+  includeUnverified: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true')
 })
 
 const createBodySchema = z.object({
@@ -106,6 +122,7 @@ const publishBodySchema = z.object({
 
 router.get(
   '/',
+  optionalAuthenticate,
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
     const query = req.query as unknown as z.infer<typeof listQuerySchema>
@@ -115,6 +132,15 @@ router.get(
     }
     if (query.characteristic) {
       filter.characteristicId = new mongoose.Types.ObjectId(query.characteristic)
+    }
+    // Por defecto (público) solo se devuelven evidencias verificadas. Un usuario
+    // autenticado con permiso evidence:upload puede pedir todas con
+    // ?includeUnverified=true (para la vista de gestión).
+    const canSeeUnverified =
+      query.includeUnverified === true &&
+      (await tokenHasPermission(req.token, 'evidence:upload'))
+    if (!canSeeUnverified) {
+      filter.verified = true
     }
     const pg = resolvePagination(query)
 
@@ -139,6 +165,7 @@ router.get(
 
 router.get(
   '/:id',
+  optionalAuthenticate,
   validate({ params: idParamSchema }),
   asyncHandler(async (req, res) => {
     const item = await evidenceRepository.findById(req.params.id, {
@@ -149,6 +176,15 @@ router.get(
     })
     if (!item) {
       throw new NotFoundError('evidence not found')
+    }
+    // No revelar evidencias sin verificar al público: solo un usuario
+    // autenticado con permiso evidence:upload puede verlas.
+    const verified = (item as unknown as { verified?: boolean }).verified === true
+    if (!verified) {
+      const canSee = await tokenHasPermission(req.token, 'evidence:upload')
+      if (!canSee) {
+        throw new NotFoundError('evidence not found')
+      }
     }
     return ok(res, item)
   })

@@ -67,35 +67,65 @@ const seedGraphV2 = async () => {
   return { gad, valuation, characteristic, type, indicatorInstance, sub }
 }
 
-describe('GET /api/v2/evidences', () => {
+describe('GET /api/v2/evidences (público: solo verificadas)', () => {
   test('200 envelope { data } lista vacia', async () => {
     const res = await api.get('/api/v2/evidences').expect(200)
     expect(Array.isArray(res.body.data)).toBe(true)
     expect(res.body.data).toHaveLength(0)
   })
 
-  test('200 lista con una evidencia v2', async () => {
-    await seed.createEvidenceV2()
+  test('200 lista con una evidencia verificada', async () => {
+    await seed.createEvidenceV2({ verified: true })
     const res = await api.get('/api/v2/evidences').expect(200)
     expect(res.body.data).toHaveLength(1)
     expect(res.body.data[0].id).toBeDefined()
     expect(res.body.data[0].kind).toBeDefined()
   })
 
-  test('filtra por ?subindicator=', async () => {
+  test('público NO ve las NO verificadas', async () => {
+    await seed.createEvidenceV2({ verified: true })
+    await seed.createEvidenceV2({ verified: false })
+    const res = await api.get('/api/v2/evidences').expect(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.data[0].verified).toBe(true)
+  })
+
+  test('admin con ?includeUnverified=true ve TODAS', async () => {
+    const { token } = await adminAuth()
+    await seed.createEvidenceV2({ verified: true })
+    await seed.createEvidenceV2({ verified: false })
+    const res = await api
+      .get('/api/v2/evidences?includeUnverified=true')
+      .set('Authorization', bearer(token))
+      .expect(200)
+    expect(res.body.data).toHaveLength(2)
+  })
+
+  test('includeUnverified sin permiso (ciudadano) se ignora', async () => {
+    const { token } = await citizenAuth()
+    await seed.createEvidenceV2({ verified: true })
+    await seed.createEvidenceV2({ verified: false })
+    const res = await api
+      .get('/api/v2/evidences?includeUnverified=true')
+      .set('Authorization', bearer(token))
+      .expect(200)
+    expect(res.body.data).toHaveLength(1)
+  })
+
+  test('filtra por ?subindicator= (solo verificadas)', async () => {
     const { sub } = await seedGraphV2()
-    await seed.createEvidenceV2({ subindicator: sub })
-    await seed.createEvidenceV2()
+    await seed.createEvidenceV2({ subindicator: sub, verified: true })
+    await seed.createEvidenceV2({ verified: true })
     const res = await api
       .get(`/api/v2/evidences?subindicator=${sub._id}`)
       .expect(200)
     expect(res.body.data).toHaveLength(1)
   })
 
-  test('filtra por ?characteristic=', async () => {
+  test('filtra por ?characteristic= (solo verificadas)', async () => {
     const { characteristic } = await seedGraphV2()
-    await seed.createEvidenceV2({ characteristic })
-    await seed.createEvidenceV2()
+    await seed.createEvidenceV2({ characteristic, verified: true })
+    await seed.createEvidenceV2({ verified: true })
     const res = await api
       .get(`/api/v2/evidences?characteristic=${characteristic._id}`)
       .expect(200)
@@ -103,7 +133,7 @@ describe('GET /api/v2/evidences', () => {
   })
 
   test('paginacion: meta.pagination', async () => {
-    for (let i = 0; i < 3; i++) await seed.createEvidenceV2()
+    for (let i = 0; i < 3; i++) await seed.createEvidenceV2({ verified: true })
     const res = await api
       .get('/api/v2/evidences?page=1&size=2')
       .expect(200)
@@ -117,12 +147,28 @@ describe('GET /api/v2/evidences', () => {
   })
 })
 
-describe('GET /api/v2/evidences/:id', () => {
-  test('200 devuelve evidencia con autor', async () => {
-    const ev = await seed.createEvidenceV2()
+describe('GET /api/v2/evidences/:id (público: solo verificadas)', () => {
+  test('200 devuelve evidencia verificada', async () => {
+    const ev = await seed.createEvidenceV2({ verified: true })
     const res = await api.get(`/api/v2/evidences/${ev._id}`).expect(200)
     expect(res.body.data.id).toBe(ev._id.toString())
     expect(res.body.data.kind).toBeDefined()
+  })
+
+  test('404 público en evidencia NO verificada (no se revela)', async () => {
+    const ev = await seed.createEvidenceV2({ verified: false })
+    const res = await api.get(`/api/v2/evidences/${ev._id}`).expect(404)
+    expect(res.body.error.code).toBe('NOT_FOUND')
+  })
+
+  test('200 admin SÍ ve la NO verificada', async () => {
+    const { token } = await adminAuth()
+    const ev = await seed.createEvidenceV2({ verified: false })
+    const res = await api
+      .get(`/api/v2/evidences/${ev._id}`)
+      .set('Authorization', bearer(token))
+      .expect(200)
+    expect(res.body.data.id).toBe(ev._id.toString())
   })
 
   test('404 NOT_FOUND', async () => {
