@@ -60,7 +60,10 @@ Jerarquía del catálogo (colecciones `v2_types`, `v2_characteristics`, `v2_valu
 
 ```
 Type (tipo de subindicador)
- ├── red / yellow / green   ← umbrales del semáforo (STRINGS, p.ej. "0.5")
+ ├── red / yellow / green   ← DESCRIPTORES CUALITATIVOS ISO (texto largo), NO umbrales.
+ │                             p.ej. red = "No cuenta con un diagnóstico de…",
+ │                             verde = "Cuenta con un diagnóstico actualizado…".
+ │                             Editar como TEXTO. ⚠️ Ver la nota de abajo.
  ├── mandatory              ← true = tipo general (aplica a todos los subindicadores)
  ├── slug, order            ← presentación/navegación estable
  └── characteristics[]      ← refs a CharacteristicV2
@@ -79,8 +82,15 @@ Type (tipo de subindicador)
 ```
 
 Notas importantes para la vista:
-- `Type.red/yellow/green` son **strings** en BD; el backend los parsea con `parseFloat`.
-  La vista debería capturarlos como número y enviarlos como string (`"0.5"`).
+- ⚠️ **CORRECCIÓN (versión previa de este doc era errónea).** `Type.red/yellow/green`
+  son **strings** que contienen los **descriptores cualitativos de la norma ISO** (las
+  frases del cuadro COLOR/PARÁMETROS de FIDEGOC: qué significa que un subindicador esté
+  en rojo/amarillo/verde). **NO son umbrales numéricos.** La vista debe editarlos como
+  **texto libre (frase larga)**. Si el diálogo los guarda como número (`"0.5"`)
+  **sobrescribe y destruye el descriptor ISO** → pérdida de datos. No hacerlo.
+- Los **umbrales numéricos del semáforo son GLOBALES y viven en el backend**
+  (rojo < 0.50 ≤ amarillo < 0.75 ≤ verde). No se editan por tipo desde esta vista.
+  Ver §5 para el detalle de cómo se calcula el color.
 - Los listados de catálogo salen **ordenados por `order` asc, desempate por `name`**.
 - Todo `_id` sale serializado como `id` en el JSON (el toJSON elimina `_id`/`__v`).
 
@@ -97,7 +107,7 @@ Notas importantes para la vista:
 | `GET /api/v2/characteristics/:id` | Una característica con sus `valuations` **pobladas** |
 | `GET /api/v2/characteristics` | Todas las características (⚠️ el filtro `?type=` no es confiable hoy; para "características de un tipo" usar `GET /types/:id`) |
 | `GET /api/v2/valuation?page=&size=` · `GET /api/v2/valuation/:id` | Catálogo de criterios/pesos |
-| `GET /api/v2/config/semaphore` | Escala canónica 0–3: `{ value, key, label, color }` × 4 niveles + nota. Los colores son placeholders; los umbrales NO viven aquí sino en `Type.red/yellow/green` |
+| `GET /api/v2/config/semaphore` | Escala canónica 0–3: `{ value, key, label, color }` × 4 niveles + nota. Los colores son placeholders. Los **umbrales numéricos son globales** (0.50/0.75, fijados en el backend); `Type.red/yellow/green` son descriptores de texto, no umbrales |
 | `GET /api/v2/subindicators/:subindicatorId/assessments` (y `/:characteristicId`) | Rúbrica aplicada (assessment) por característica: criterios `met`, `score`, `totalRubric`, `verified`, `qualifiedBy` poblado — útil para que el Metodólogo vea cómo se está usando su rúbrica en campo |
 
 La paginación es opcional en todos los listados: sin `?page=&size=` devuelve todo; con
@@ -156,10 +166,14 @@ El scoring v2 (`src/v2/services/scoring.service.ts`) consume directamente el cat
 1. **`Valuation.maxValue` = peso del criterio.** Al calificar una evidencia, el servidor
    **ignora cualquier peso enviado por el cliente** y usa el `maxValue` de BD. La nota de
    una característica = (Σ pesos de criterios cumplidos) ÷ (Σ pesos de todos los criterios).
-2. **`Type.red` / `Type.yellow` = umbrales del semáforo.** porcentaje < red → rojo (1);
-   < yellow → amarillo (2); ≥ yellow → verde (3). Si los valores son inválidos o
-   `red ≥ yellow`, el backend usa los defaults **0.5 / 0.75**. (El campo `green` existe en
-   el modelo pero el corte a verde lo decide `yellow`.)
+2. **Umbrales del semáforo = GLOBALES (0.50 / 0.75), NO por tipo.** El backend mapea el
+   porcentaje a color así: < 0.50 → rojo (1); < 0.75 → amarillo (2); ≥ 0.75 → verde (3).
+   ⚠️ El código intenta leer estos umbrales de `Type.red`/`Type.yellow` con `parseFloat`,
+   pero como esos campos contienen **texto descriptivo** (no números), el `parseFloat` da
+   `NaN` y **siempre cae a los defaults globales 0.50 / 0.75**. En la práctica, HOY el
+   umbral es único para todos los tipos. Editar los descriptores `red/yellow/green` (texto)
+   **no cambia el punto de corte del semáforo**; solo cambia el rótulo cualitativo que
+   describe cada color. (Ver la nota de la §3: no enviar números en esos campos.)
 3. **`Characteristic.tier > 1` = característica crítica.** Si una característica crítica no
    tiene evidencia verificada (o su porcentaje es 0), el subindicador se **fuerza a rojo**
    sin importar el promedio. Con `tier = 1` la regla no aplica.
@@ -169,20 +183,23 @@ El scoring v2 (`src/v2/services/scoring.service.ts`) consume directamente el cat
 
 ⚠️ **Editar el catálogo NO recalcula retroactivamente** los semáforos existentes: el
 recálculo se dispara al calificar/publicar/verificar/eliminar evidencias. Si el Metodólogo
-cambia pesos o umbrales, los puntajes ya calculados quedan como estaban hasta el siguiente
-evento de calificación de cada subindicador. La vista debería advertirlo al guardar.
+cambia los pesos (`Valuation.maxValue`) o el `tier`, los puntajes ya calculados quedan como
+estaban hasta el siguiente evento de calificación de cada subindicador. La vista debería
+advertirlo al guardar. (Editar los descriptores `red/yellow/green` no afecta el cálculo.)
 
 ---
 
 ## 6. Resumen operativo para armar la vista
 
-1. Tras login (`POST /api/login`), llamar `GET /api/v2/me` → si
+1. Tras login (`POST /api/v2/login` con `{ email, password }`), llamar `GET /api/v2/me` → si
    `user.rol.permissions` incluye `rubric:configure`, habilitar la vista Metodólogo.
 2. Cargar en paralelo: `GET /types` (árbol tipo→características poblado),
    `GET /valuation` (biblioteca de criterios), `GET /config/semaphore` (escala/labels).
 3. Editor de rúbrica de una característica: `GET /characteristics/:id` (valuations
    pobladas) → editar la lista → `PATCH /characteristics/:id/valuation`.
-4. Editor de umbrales: `PUT /types/:id` con `red`/`yellow`/`green` como strings.
+4. Editor de descriptores del tipo: `PUT /types/:id` con `red`/`yellow`/`green` como
+   **texto** (las frases ISO). NO como números. (Los umbrales numéricos son globales; no se
+   editan aquí — ver §5.)
 5. Marcar una característica como crítica: `PUT /characteristics/:id` con `tier: 2`.
 6. Sin header `tenant` en nada de lo anterior (catálogo global); Bearer token en toda
    mutación; manejar `401/403/400/404` con los códigos del envelope.
