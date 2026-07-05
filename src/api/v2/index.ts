@@ -13,6 +13,7 @@
 import { Router } from 'express'
 import swaggerUi from 'swagger-ui-express'
 import spec from './openapi'
+import loginRouter from './resources/login.routes'
 import indicatorsRouter from './resources/indicators.routes'
 import usersRouter from './resources/users.routes'
 import odsRouter from './resources/ods.routes'
@@ -51,6 +52,9 @@ router.use('/docs', swaggerUi.serve, swaggerUi.setup(spec, {
   customSiteTitle: 'ISO 18091 API v2 — Docs'
 }))
 
+// Login v2 (PUBLICO): autentica contra v2_users por email. Se monta antes que
+// el resto de recursos; no lleva auth.
+router.use('/login', loginRouter)
 router.use('/indicators', indicatorsRouter)
 router.use('/users', usersRouter)
 router.use('/ods', odsRouter)
