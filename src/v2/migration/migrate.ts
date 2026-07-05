@@ -22,7 +22,7 @@
 //   aunque sean string. Los defaults 0.50/0.75 se usan cuando parseFloat
 //   devuelve NaN. Ver documentacion en scoring.service.ts.
 //
-// Salida: docs/refactor-reports/migracion-v2-informe.md
+// Salida: docs/informes/migracion-v2-informe.md
 // ===========================================================================
 
 import mongoose from 'mongoose'
@@ -1012,7 +1012,7 @@ const buildReport = (report: MigrationReport, write: boolean): string => {
 // `qualification` de v1 (colecciones legacy, intactas = valor "antes") contra
 // las `v2_*` (ya recalculadas = "después") y resuelve nombres (subindicador,
 // indicador con cuadrante/número, año y GAD). Escribe
-// docs/refactor-reports/diff-puntajes-legible.md agrupado por GAD → cuadrante.
+// docs/informes/diff-puntajes-legible.md agrupado por GAD → cuadrante.
 // ---------------------------------------------------------------------------
 
 interface ReadableDiffRow {
@@ -1084,7 +1084,7 @@ const buildReadableDiff = (rows: ReadableDiffRow[]): string => {
 
 /**
  * Genera el diff de puntajes legible (READ-ONLY). No escribe en v2_*.
- * Devuelve las filas y escribe el informe legible en docs/refactor-reports/.
+ * Devuelve las filas y escribe el informe legible en docs/informes/.
  */
 export const runDiffReport = async (): Promise<ReadableDiffRow[]> => {
   process.stdout.write('[migrate:v2] Generando diff legible (read-only)...\n')
@@ -1168,7 +1168,7 @@ export const runDiffReport = async (): Promise<ReadableDiffRow[]> => {
   if (process.env.NODE_ENV !== 'test') {
     const out = path.resolve(
       __dirname,
-      '../../../docs/refactor-reports/diff-puntajes-legible.md'
+      '../../../docs/informes/diff-puntajes-legible.md'
     )
     try {
       fs.mkdirSync(path.dirname(out), { recursive: true })
@@ -1258,7 +1258,7 @@ export const runMigration = async (
     const reportContent = buildReport(report, write)
     const reportPath = path.resolve(
       __dirname,
-      '../../../docs/refactor-reports/migracion-v2-informe.md'
+      '../../../docs/informes/migracion-v2-informe.md'
     )
 
     try {

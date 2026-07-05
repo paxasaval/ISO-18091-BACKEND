@@ -197,7 +197,7 @@ perímetro: seguridad de endpoints, convivencia v1/v2 y operación.
 | 5 | A-05 / O-06 | **`subindicator.save()` sin `await`** en el clonado de período: pérdida silenciosa de datos, instancias apuntando a subindicadores nunca persistidos, sin transacción. | `src/v2/repositories/period.repository.ts:65` |
 | 6 | O-12 | **Bug silencioso en `$lookup`**: los aggregates de summary hacen join contra `v2_gad` pero la colección es `v2_gads` → `gadId: []` siempre en las respuestas de summary v2. | `src/v2/repositories/indicator-instance.repository.ts:82,133` |
 | 7 | A-03 | **El server escucha antes de conectar a Mongo** y sigue vivo si la conexión falla (solo loguea). | `index.js:7-22` |
-| 8 | M-08 | **Datos de prueba en producción**: subindicadores "Prueba 1" (1.1) y "Proyecto camaras" (1.10) con evidencias que puntúan en el informe oficial de Loja 2023. | `docs/refactor-reports/diff-puntajes-legible.md:31,35` |
+| 8 | M-08 | **Datos de prueba en producción**: subindicadores "Prueba 1" (1.1) y "Proyecto camaras" (1.10) con evidencias que puntúan en el informe oficial de Loja 2023. | `docs/informes/diff-puntajes-legible.md:31,35` |
 
 ## 2.3 Hallazgos ALTOS (siguiente sprint)
 

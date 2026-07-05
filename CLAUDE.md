@@ -14,7 +14,7 @@ Se está migrando a **TypeScript con arquitectura por capas**
 (routes → services → repositories). Reglas vigentes:
 
 - **Compatibilidad ESTRICTA de v1**: las rutas `/api/...` y la forma de sus
-  respuestas JSON NO cambian. Contrato en `docs/refactor-reports/baseline-endpoints.md`.
+  respuestas JSON NO cambian. Contrato en `docs/refactor/baseline-endpoints.md`.
 - Las mejoras y la reescritura REST van en **`/api/v2`** (capa nueva sobre los
   mismos services).
 - Código nuevo en **TypeScript** dentro de `src/`, compila a `dist/`.
@@ -24,8 +24,13 @@ Se está migrando a **TypeScript con arquitectura por capas**
 
 El plan completo y el flujo orquestado por subagentes
 (`refactor-engineer` + `code-reviewer`, bucle máx. 3 iteraciones) está en
-`C:\Users\DELL\.claude\plans\refactored-fluttering-moth.md` y los informes en
-`docs/refactor-reports/`.
+`C:\Users\DELL\.claude\plans\refactored-fluttering-moth.md`.
+
+Documentación (ver `docs/README.md`): `docs/guias/` (referencia viva: API,
+usuario, navegación), `docs/frontend/` (contratos vigentes del FE),
+`docs/informes/` (salidas/reportes del sistema: auditoría + informes generados
+por la migración), `docs/refactor/` (material histórico del refactor: plan,
+baseline v1, auditoría de hardcode y rondas de preguntas/respuestas al FE).
 
 ## Estructura actual
 
