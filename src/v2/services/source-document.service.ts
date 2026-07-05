@@ -19,6 +19,7 @@ import mongoose from 'mongoose'
 import subindicatorRepository from '../repositories/subindicator.repository'
 import indicatorInstanceRepository from '../repositories/indicator-instance.repository'
 import sourceDocumentRepository from '../repositories/source-document.repository'
+import { normalizeSourceName } from '../utils/source-name'
 import logger from '../../utils/logger'
 
 interface SourceContext {
@@ -80,16 +81,20 @@ export const findOrCreateSourceForEvidence = async (
     return null
   }
 
-  // Dedupe por (gadId, link): si el documento ya esta en la biblioteca, se reutiliza.
+  // Dedupe por (gadId, nombre normalizado): alineado con la deteccion de
+  // duplicados del FE. Si ya existe un documento con ese nombre en la biblioteca
+  // del GAD, se reutiliza (la evidencia conserva su propio link al archivo subido).
+  const nameNormalized = normalizeSourceName(input.name)
   const existing = (await sourceDocumentRepository.findOne({
     gadId: ctx.gadId,
-    link: input.link
+    nameNormalized
   } as Record<string, unknown>)) as unknown as { _id: mongoose.Types.ObjectId } | null
   if (existing) return existing._id
 
   const data: Record<string, unknown> = {
     gadId: ctx.gadId,
     name: input.name,
+    nameNormalized,
     link: input.link,
     verified: false,
     createdAt: new Date()

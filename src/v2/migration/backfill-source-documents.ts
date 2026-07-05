@@ -19,7 +19,9 @@
 
 import mongoose from 'mongoose'
 import Evidence from '../models/evidence.model'
+import SourceDocument from '../models/source-document.model'
 import { findOrCreateSourceForEvidence, resolveSourceContext } from '../services/source-document.service'
+import { normalizeSourceName } from '../utils/source-name'
 import logger from '../../utils/logger'
 
 interface EvidenceLean {
@@ -34,6 +36,12 @@ export interface BackfillReport {
   candidates: number
   linked: number
   skippedNoContext: number
+  namesNormalized: number
+}
+
+interface SourceLean {
+  _id: mongoose.Types.ObjectId
+  name: string
 }
 
 // Ejecuta el backfill sobre la conexion mongoose ACTIVA (sirve para tests con
@@ -41,6 +49,22 @@ export interface BackfillReport {
 export const runBackfill = async (
   opts: { write: boolean } = { write: false }
 ): Promise<BackfillReport> => {
+  // Paso 0: rellenar nameNormalized en source-documents preexistentes (creados
+  // antes del campo), para que el dedupe por nombre funcione contra ellos.
+  const legacySources = (await SourceDocument.find({
+    $or: [{ nameNormalized: { $exists: false } }, { nameNormalized: null }]
+  }).lean()) as unknown as SourceLean[]
+  let namesNormalized = 0
+  for (const src of legacySources) {
+    if (opts.write) {
+      await SourceDocument.updateOne(
+        { _id: src._id },
+        { $set: { nameNormalized: normalizeSourceName(src.name) } }
+      )
+    }
+    namesNormalized += 1
+  }
+
   const evidences = (await Evidence.find({
     link: { $exists: true, $nin: [null, ''] },
     $or: [{ sourceId: { $exists: false } }, { sourceId: null }]
@@ -49,7 +73,8 @@ export const runBackfill = async (
   const report: BackfillReport = {
     candidates: evidences.length,
     linked: 0,
-    skippedNoContext: 0
+    skippedNoContext: 0,
+    namesNormalized
   }
 
   for (const ev of evidences) {
@@ -108,8 +133,9 @@ if (require.main === module) {
     .then(() => runBackfill({ write: doWrite }))
     .then((report) => {
       process.stdout.write(
-        `[backfill:sources] candidatas=${report.candidates} ` +
-        `enlazadas=${report.linked} sin_contexto=${report.skippedNoContext}\n`
+        `[backfill:sources] nombres_normalizados=${report.namesNormalized} ` +
+        `candidatas=${report.candidates} enlazadas=${report.linked} ` +
+        `sin_contexto=${report.skippedNoContext}\n`
       )
       return mongoose.disconnect()
     })

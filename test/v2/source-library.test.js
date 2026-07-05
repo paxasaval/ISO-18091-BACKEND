@@ -66,24 +66,49 @@ describe('POST /api/v2/evidences — auto-poblado de la biblioteca', () => {
     expect(res.body.data.sourceId.toString()).toBe(sources[0]._id.toString())
   })
 
-  test('dedupe: dos evidencias con el mismo link+gad comparten un solo SourceDocument', async () => {
+  test('dedupe por nombre normalizado: mismo nombre (aunque link distinto) = un solo SourceDocument', async () => {
     const { token, subindicator, characteristic } = await setup()
     const otherCharacteristic = await seed.createCharacteristicV2()
 
     const r1 = await api
       .post('/api/v2/evidences')
       .set('Authorization', bearer(token))
-      .send(evidenceBody(subindicator, characteristic))
+      .send(evidenceBody(subindicator, characteristic, { name: 'PoA 2024.pdf' }))
       .expect(201)
 
+    // Mismo documento por nombre normalizado ("poa 2024.pdf") pero subido aparte
+    // (link distinto): debe reutilizar el SourceDocument, no duplicar.
     const r2 = await api
       .post('/api/v2/evidences')
       .set('Authorization', bearer(token))
-      .send(evidenceBody(subindicator, otherCharacteristic))
+      .send(
+        evidenceBody(subindicator, otherCharacteristic, {
+          name: 'poa  2024.pdf',
+          link: 'https://storage/otra-subida.pdf'
+        })
+      )
       .expect(201)
 
     expect(await SourceDocument.countDocuments()).toBe(1)
     expect(r1.body.data.sourceId.toString()).toBe(r2.body.data.sourceId.toString())
+  })
+
+  test('nombres distintos generan documentos distintos', async () => {
+    const { token, subindicator, characteristic } = await setup()
+    const otherCharacteristic = await seed.createCharacteristicV2()
+
+    await api
+      .post('/api/v2/evidences')
+      .set('Authorization', bearer(token))
+      .send(evidenceBody(subindicator, characteristic, { name: 'Ordenanza A' }))
+      .expect(201)
+    await api
+      .post('/api/v2/evidences')
+      .set('Authorization', bearer(token))
+      .send(evidenceBody(subindicator, otherCharacteristic, { name: 'Ordenanza B' }))
+      .expect(201)
+
+    expect(await SourceDocument.countDocuments()).toBe(2)
   })
 
   test('reuso explicito: si viene sourceId, NO se crea un documento nuevo', async () => {

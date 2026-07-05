@@ -2,12 +2,17 @@
 // Biblioteca POA reutilizable a nivel GAD/periodo: el documento se sube una vez
 // y se referencia desde multiples evidencias (Evidence.sourceId).
 import mongoose, { Document, Schema } from 'mongoose'
+import { normalizeSourceName } from '../utils/source-name'
 
 interface ISourceDocumentV2 extends Document {
   gadId: mongoose.Types.ObjectId
   periodId?: mongoose.Types.ObjectId
   year?: string
   name: string
+  // Nombre normalizado (trim + minusculas + colapsar espacios). Se deriva de
+  // `name` en el pre-save; es la clave de dedupe de la biblioteca, alineada con
+  // la deteccion de duplicados del frontend.
+  nameNormalized?: string
   link: string
   kind?: string
   uploadedBy?: mongoose.Types.ObjectId
@@ -34,6 +39,10 @@ const sourceDocumentSchema = new Schema<ISourceDocumentV2>({
     type: String,
     required: true
   },
+  nameNormalized: {
+    type: String,
+    required: false
+  },
   link: {
     type: String,
     required: true
@@ -57,6 +66,18 @@ const sourceDocumentSchema = new Schema<ISourceDocumentV2>({
     default: Date.now
   }
 })
+
+// Deriva nameNormalized de name en cada save (create incluido). Asi el dedupe
+// por (gadId, nameNormalized) es consistente sin depender de quien crea el doc.
+sourceDocumentSchema.pre('save', function (next) {
+  if (this.isNew || this.isModified('name')) {
+    this.nameNormalized = normalizeSourceName(this.name)
+  }
+  next()
+})
+
+// Dedupe/consulta de la biblioteca por GAD + nombre normalizado.
+sourceDocumentSchema.index({ gadId: 1, nameNormalized: 1 })
 
 sourceDocumentSchema.set('toJSON', {
   transform: (doc, returnObj) => {
