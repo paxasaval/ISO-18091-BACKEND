@@ -22,13 +22,15 @@
 //        si alguna caracteristica critica NO tiene assessment verificado (o su
 //        percent === 0), el subindicador queda TAPEADO A ROJO (qualification=1)
 //        independientemente del resto.
-//    - Mapeo percent → qualification 0–3 (umbrales de semaforo del Type.red/yellow/green):
-//        0         → qualification = 0  (sin evaluar: ningun assessment verificado)
-//        [0, red)  → qualification = 1  (inaceptable / rojo)
-//        [red, yellow) → qualification = 2  (debajo de lo aceptable / amarillo)
-//        [yellow, ∞)   → qualification = 3  (aceptable / verde)
-//        Si no hay umbrales en el Type, se usan defaults: red=0.50, yellow=0.75.
-//        Los umbrales son fracciones de 0 a 1; se parsean con parseFloat.
+//    - Mapeo percent → qualification 0–3 con umbrales GLOBALES (fracciones 0..1):
+//        0                          → qualification = 0  (sin evaluar)
+//        [0, RED)                   → qualification = 1  (inaceptable / rojo)
+//        [RED, YELLOW)              → qualification = 2  (debajo de lo aceptable / amarillo)
+//        [YELLOW, ∞)                → qualification = 3  (aceptable / verde)
+//      Los umbrales (RED=0.50, YELLOW=0.75) son GLOBALES para toda la plataforma
+//      (SEMAPHORE_RED_THRESHOLD / SEMAPHORE_YELLOW_THRESHOLD). NO se leen de
+//      Type.red/Type.yellow: esos campos guardan los DESCRIPTORES cualitativos de
+//      la norma ISO (texto, p.ej. "No cuenta con un diagnóstico de…"), no numeros.
 //    - NO se calcula maturityLevel (reservado, Anexo A futuro).
 //
 // 3. INDICATOR INSTANCE — IndicatorInstanceV2
@@ -85,43 +87,18 @@ interface SubindicatorLean {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// Parsea un threshold guardado como string (p.ej "0.50") o number.
-// Devuelve el valor numerico; NaN si no es un numero valido.
-const parseThreshold = (v: unknown): number => {
-  if (v === undefined || v === null) return NaN
-  const n = typeof v === 'number' ? v : parseFloat(String(v))
-  return Number.isFinite(n) ? n : NaN
-}
+// Umbrales GLOBALES del semaforo (fracciones 0..1). Unica fuente de verdad del
+// punto de corte percent → color para toda la plataforma. NO se leen del catalogo:
+// Type.red/Type.yellow guardan los descriptores cualitativos de la norma (texto),
+// no numeros. Si en el futuro se requieren umbrales por tipo, deben ser campos
+// numericos NUEVOS y separados de los descriptores.
+export const SEMAPHORE_RED_THRESHOLD = 0.5
+export const SEMAPHORE_YELLOW_THRESHOLD = 0.75
 
-// Mapea un percent (0..1) a 0–3 segun umbrales.
-// red y yellow son fracciones; si no son validos o estan invertidos, se usan defaults.
-const percentToQualification = (
-  percent: number,
-  redRaw: unknown,
-  yellowRaw: unknown
-): number => {
-  const DEFAULT_RED = 0.5
-  const DEFAULT_YELLOW = 0.75
-
-  let red = Number.isFinite(parseThreshold(redRaw))
-    ? parseThreshold(redRaw)
-    : NaN
-  let yellow = Number.isFinite(parseThreshold(yellowRaw))
-    ? parseThreshold(yellowRaw)
-    : NaN
-
-  // B3: si los umbrales son invalidos o estan invertidos, usar defaults y advertir.
-  if (!Number.isFinite(red) || !Number.isFinite(yellow) || red >= yellow) {
-    logger.warn(
-      'scoring.percentToQualification: umbrales invalidos o invertidos ' +
-      `(red=${red}, yellow=${yellow}). Usando defaults red=${DEFAULT_RED}, yellow=${DEFAULT_YELLOW}.`
-    )
-    red = DEFAULT_RED
-    yellow = DEFAULT_YELLOW
-  }
-
-  if (percent < red) return 1
-  if (percent < yellow) return 2
+// Mapea un percent (0..1) a 0–3 segun los umbrales globales.
+const percentToQualification = (percent: number): number => {
+  if (percent < SEMAPHORE_RED_THRESHOLD) return 1
+  if (percent < SEMAPHORE_YELLOW_THRESHOLD) return 2
   return 3
 }
 
@@ -196,7 +173,7 @@ export const recomputeSubindicator = async (subindicatorId: string): Promise<voi
     return
   }
 
-  // Cargar Type con characteristics pobladas para saber tier.
+  // Cargar Type con characteristics pobladas para saber tier (caracteristica critica).
   const type = await TypeModel.findById(sub.typeId).populate('characteristics').exec()
   if (!type) {
     logger.info(`scoring.recomputeSubindicator: Type ${sub.typeId} no encontrado para sub ${subindicatorId}`)
@@ -204,8 +181,6 @@ export const recomputeSubindicator = async (subindicatorId: string): Promise<voi
   }
 
   const typeDoc = type as unknown as {
-    red: unknown
-    yellow: unknown
     characteristics: Array<{ _id: mongoose.Types.ObjectId; tier: number }>
   }
 
@@ -278,7 +253,7 @@ export const recomputeSubindicator = async (subindicatorId: string): Promise<voi
     // Caracteristica critica no cubierta → topa a rojo (1).
     qualification = 1
   } else {
-    qualification = percentToQualification(overallPercent, typeDoc.red, typeDoc.yellow)
+    qualification = percentToQualification(overallPercent)
   }
 
   // score y totalScore almacenados como valores intermedios utiles.

@@ -6,10 +6,12 @@
 //   - color: PLACEHOLDER de color. El FE alineara el hex real con su tema; estos
 //            son valores indicativos documentados, NO una decision de marca.
 //
-// NOTA: los umbrales red/yellow/green (que mapean una puntuacion a un nivel del
-// semaforo) NO viven aqui: son configurables por catalogo y se almacenan en los
-// campos `red`/`yellow`/`green` de `Type` e `Indicator`. Esta escala solo define
-// los niveles canonicos y su presentacion.
+// NOTA: los umbrales numericos que mapean una puntuacion (0..1) a un nivel del
+// semaforo son GLOBALES y viven en el scoring service
+// (SEMAPHORE_RED_THRESHOLD=0.50 / SEMAPHORE_YELLOW_THRESHOLD=0.75 en
+// src/v2/services/scoring.service.ts). Los campos `red`/`yellow`/`green` de
+// `Type`/`Indicator` NO son umbrales: guardan los descriptores cualitativos de la
+// norma ISO (texto). Esta escala solo define los niveles canonicos y su presentacion.
 
 export interface SemaphoreLevel {
   value: number
@@ -27,8 +29,9 @@ export const SEMAPHORE_SCALE: readonly SemaphoreLevel[] = [
 
 // Nota documentada para los consumidores del recurso /config/semaphore.
 export const SEMAPHORE_NOTE =
-  'Los umbrales red/yellow/green (puntuacion -> nivel) son configurables por ' +
-  'catalogo y viven en los campos red/yellow/green de Type e Indicator. Los ' +
-  'colores son placeholders; el frontend alinea el hex con su tema.'
+  'Los umbrales (puntuacion 0..1 -> nivel) son GLOBALES: rojo < 0.50, ' +
+  'amarillo < 0.75, verde >= 0.75. Los campos red/yellow/green de Type/Indicator ' +
+  'son descriptores cualitativos de la norma (texto), no umbrales. Los colores ' +
+  'son placeholders; el frontend alinea el hex con su tema.'
 
 export default SEMAPHORE_SCALE
