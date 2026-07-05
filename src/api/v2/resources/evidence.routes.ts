@@ -52,6 +52,7 @@ import { objectId } from '../schemas'
 import { validate } from '../validate'
 import auditService from '../../../v2/services/audit.service'
 import scoringService from '../../../v2/services/scoring.service'
+import sourceDocumentService from '../../../v2/services/source-document.service'
 import CharacteristicV2 from '../../../v2/models/characteristic.model'
 import ValuationV2 from '../../../v2/models/valuation.model'
 
@@ -215,10 +216,25 @@ router.post(
       extras: body.extras ?? {}
     }
     if (body.link) data.link = body.link
+    if (body.pages) data.pages = body.pages
+
+    // Biblioteca (v2_source_documents): reuso explicito vs auto-poblado.
+    //  - Si el FE envia sourceId, la evidencia reutiliza ese documento (el usuario
+    //    lo eligio de la biblioteca).
+    //  - Si NO hay sourceId pero si un link (documento nuevo), se crea/enlaza un
+    //    SourceDocument (dedupe por gadId+link) y la evidencia lo referencia. Asi
+    //    toda evidencia subida puebla la biblioteca.
     if (body.sourceId) {
       data.sourceId = new mongoose.Types.ObjectId(body.sourceId)
+    } else if (body.link) {
+      const sourceId = await sourceDocumentService.findOrCreateSourceForEvidence({
+        subindicatorId: body.subindicatorId,
+        name: body.name,
+        link: body.link,
+        uploadedBy: userId
+      })
+      if (sourceId) data.sourceId = sourceId
     }
-    if (body.pages) data.pages = body.pages
 
     const saved = await evidenceRepository.create(
       data as Parameters<typeof evidenceRepository.create>[0]
