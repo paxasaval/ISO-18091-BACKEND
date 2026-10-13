@@ -13,3 +13,5 @@ backup_restore.js
 # Informes generados por la migración (salida por-ejecución; se regeneran).
 docs/informes/migracion-v2-informe.md
 docs/informes/diff-puntajes-legible.md
+# Datos reales del paquete de entrega de BD (se entregan aparte, no se versionan)
+entrega-bd/datos/
